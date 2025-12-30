@@ -11,13 +11,8 @@ def accel_magnitude(accel: np.ndarray) -> np.ndarray:
 
 
 def moving_average(x: np.ndarray, window: int = 5) -> np.ndarray:
-    """Simple moving average (centered `same` convolution). Handles short input gracefully.
-
-    Uses numpy.convolve with 'same' so the output length matches the input and
-    very short inputs (len(x) < window) return a reasonable smoothed signal.
-    """
-    x = np.asarray(x, dtype=float)
-    if window <= 1 or len(x) == 0:
+    """Simple moving average (causal)"""
+    if window <= 1 or len(x) < window:
         return x
     # If the sequence is shorter than the window, return the mean as a flat signal
     if len(x) < window:

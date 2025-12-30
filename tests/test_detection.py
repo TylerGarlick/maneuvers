@@ -1,3 +1,5 @@
+import numpy as np
+import pytest
 from maneuvers.data.loader import generate_synthetic_sequence
 from maneuvers.preprocessing import compute_features_from_sequence
 from maneuvers.detection import detect_segments
@@ -14,3 +16,12 @@ def test_threshold_detect_finds_maneuvers():
     assert res["tp"] >= 1
     # predictions should be non-empty
     assert len(preds) >= 1
+
+
+def test_detect_segments_unknown_method():
+    """Test that unknown detection method raises ValueError."""
+    seq = generate_synthetic_sequence(duration_s=5.0, fs=50, seed=1)
+    feats = compute_features_from_sequence(seq)
+
+    with pytest.raises(ValueError, match="Unknown method"):
+        detect_segments(feats, method="unknown")

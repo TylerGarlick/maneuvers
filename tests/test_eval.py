@@ -7,6 +7,21 @@ def test_segment_iou():
     assert abs(segment_iou(a, b) - 5 / 15) < 1e-8
 
 
+def test_segment_iou_no_overlap():
+    """Test segment_iou with no overlap returns 0."""
+    a = (0, 10)
+    b = (20, 30)
+    assert segment_iou(a, b) == 0.0
+
+
+def test_segment_iou_invalid_segments():
+    """Test segment_iou with invalid segments (end <= start)."""
+    # Invalid segment with end <= start
+    a = (10, 10)  # Zero length
+    b = (0, 5)
+    assert segment_iou(a, b) == 0.0
+
+
 def test_evaluate_detection_counts():
     gt = [(0, 10), (20, 30)]
     preds = [(0, 10), (21, 29), (40, 50)]
