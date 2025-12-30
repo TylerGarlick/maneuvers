@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maneuvers"
+version = "0.1.0"
+description = "A minimal python application for maneuvers"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [ { name = "Your Name", email = "you@example.com" } ]
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+maneuvers = "maneuvers.__main__:main"
