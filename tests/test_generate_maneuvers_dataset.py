@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 
 from maneuvers.data.maneuvers_catalog import MANEUVERS
 from maneuvers.data.loader import from_csv, generate_maneuvers_dataset

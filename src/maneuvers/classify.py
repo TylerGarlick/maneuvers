@@ -1,4 +1,5 @@
 """Simple classification helpers for maneuvers demo."""
+
 from __future__ import annotations
 from typing import Dict, List, Tuple
 
@@ -15,11 +16,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import make_scorer, f1_score
 from maneuvers.models.cnn import _CNN1DClassifier, _CNN1DMultiBranchClassifier
 
-import numpy as np
-from collections import Counter
 # optional backends
 try:
     from xgboost import XGBClassifier
+
     HAS_XGBOOST = True
 except Exception:  # pragma: no cover - optional
     XGBClassifier = None
@@ -28,6 +28,7 @@ except Exception:  # pragma: no cover - optional
 try:
     import tensorflow as tf
     from tensorflow.keras import models, layers, optimizers
+
     HAS_TF = True
 except Exception:  # pragma: no cover - optional
     tf = None
@@ -37,7 +38,9 @@ except Exception:  # pragma: no cover - optional
     HAS_TF = False
 
 
-def segment_aggregated_features(features_df: pd.DataFrame, segment: Tuple[int, int]) -> np.ndarray:
+def segment_aggregated_features(
+    features_df: pd.DataFrame, segment: Tuple[int, int]
+) -> np.ndarray:
     s, e = segment
     seg = features_df.iloc[s:e]
     # richer aggregations
@@ -48,10 +51,15 @@ def segment_aggregated_features(features_df: pd.DataFrame, segment: Tuple[int, i
     mean_gyro = seg["gyro_mag"].mean()
     energy = (seg["accel_mag"] ** 2).sum()
     length = e - s
-    return np.array([mean_accel, std_accel, max_accel, min_accel, mean_gyro, energy, length], dtype=float)
+    return np.array(
+        [mean_accel, std_accel, max_accel, min_accel, mean_gyro, energy, length],
+        dtype=float,
+    )
 
 
-def build_training_data_from_sequence(seq, features_df: pd.DataFrame) -> Tuple[np.ndarray, List[str]]:
+def build_training_data_from_sequence(
+    seq, features_df: pd.DataFrame
+) -> Tuple[np.ndarray, List[str]]:
     """Build X,y from a synthetic sequence using ground-truth segments.
 
     Each ground-truth segment becomes one training example (aggregated features).
@@ -70,7 +78,10 @@ def build_training_data_from_sequence(seq, features_df: pd.DataFrame) -> Tuple[n
     # negative examples: sample random windows that do not overlap GT
     rng = np.random.default_rng(0)
     attempts = 0
-    while len([yy for yy in y if yy == 'none']) < max(3, len(seq.segments)) and attempts < 100:
+    while (
+        len([yy for yy in y if yy == "none"]) < max(3, len(seq.segments))
+        and attempts < 100
+    ):
         attempts += 1
         w = int(rng.integers(10, max(20, N // 10)))
         start = int(rng.integers(0, max(1, N - w)))
@@ -118,16 +129,24 @@ def build_pipeline(model_type: str = "rf", **kwargs) -> Pipeline:
         return Pipeline([("scaler", StandardScaler()), ("clf", clf)])
     if model_type == "xgb":
         if not HAS_XGBOOST:
-            raise ImportError("XGBoost is not installed. Install with `pip install xgboost` to use model_type='xgb'.")
-        clf = XGBClassifier(use_label_encoder=False, eval_metric="mlogloss", random_state=0, **kwargs)
+            raise ImportError(
+                "XGBoost is not installed. Install with `pip install xgboost` to use model_type='xgb'."
+            )
+        clf = XGBClassifier(
+            use_label_encoder=False, eval_metric="mlogloss", random_state=0, **kwargs
+        )
         return Pipeline([("scaler", StandardScaler()), ("clf", clf)])
     if model_type == "cnn":
         if not HAS_TF:
-            raise ImportError("TensorFlow is not installed. Install `tensorflow` to use model_type='cnn'.")
+            raise ImportError(
+                "TensorFlow is not installed. Install `tensorflow` to use model_type='cnn'."
+            )
         return _CNN1DClassifier
     if model_type == "cnn_multi":
         if not HAS_TF:
-            raise ImportError("TensorFlow is not installed. Install `tensorflow` to use model_type='cnn_multi'.")
+            raise ImportError(
+                "TensorFlow is not installed. Install `tensorflow` to use model_type='cnn_multi'."
+            )
         return _CNN1DMultiBranchClassifier
 
     raise ValueError(f"unknown model_type: {model_type}")
@@ -135,7 +154,13 @@ def build_pipeline(model_type: str = "rf", **kwargs) -> Pipeline:
 
 # lightweight Keras wrapper for dense models (works with vector inputs)
 class _KerasDenseClassifier:
-    def __init__(self, input_dim: int | None = None, n_classes: int | None = None, epochs: int = 20, batch_size: int = 16):
+    def __init__(
+        self,
+        input_dim: int | None = None,
+        n_classes: int | None = None,
+        epochs: int = 20,
+        batch_size: int = 16,
+    ):
         if not HAS_TF:
             raise ImportError("TensorFlow not available")
         self.input_dim = input_dim
@@ -150,14 +175,20 @@ class _KerasDenseClassifier:
         m.add(layers.Dense(64, activation="relu"))
         m.add(layers.Dense(32, activation="relu"))
         m.add(layers.Dense(n_classes, activation="softmax"))
-        m.compile(optimizer=optimizers.Adam(learning_rate=1e-3), loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+        m.compile(
+            optimizer=optimizers.Adam(learning_rate=1e-3),
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
+        )
         return m
 
     def fit(self, X, y):
         X = np.asarray(X)
         y = np.asarray(y)
         if X.ndim != 2:
-            raise ValueError("_KerasDenseClassifier expects 2D input (n_samples, n_features)")
+            raise ValueError(
+                "_KerasDenseClassifier expects 2D input (n_samples, n_features)"
+            )
         if self.input_dim is None:
             self.input_dim = X.shape[1]
         if self.n_classes is None:
@@ -174,7 +205,9 @@ class _KerasDenseClassifier:
         return probs.argmax(axis=1)
 
 
-def train_classifier(X: np.ndarray, y: List[str], model_type: str = "rf", cv: int = 5, **kwargs) -> Dict:
+def train_classifier(
+    X: np.ndarray, y: List[str], model_type: str = "rf", cv: int = 5, **kwargs
+) -> Dict:
     """Train a classifier and return a dict with model, encoder, and CV scores.
 
     This function is careful about very small sample regimes. If there are fewer
@@ -221,14 +254,23 @@ def train_classifier(X: np.ndarray, y: List[str], model_type: str = "rf", cv: in
     return {"model": pipe, "encoder": le, "cv_scores": cv_scores}
 
 
-def train_with_grid_search(X: np.ndarray, y: List[str], model_type: str = "rf", param_grid: dict | list | None = None, cv: int = 3, **kwargs) -> Dict:
+def train_with_grid_search(
+    X: np.ndarray,
+    y: List[str],
+    model_type: str = "rf",
+    param_grid: dict | list | None = None,
+    cv: int = 3,
+    **kwargs,
+) -> Dict:
     """Train with GridSearchCV and return the best model and results.
 
     If grid search fails (e.g., tiny dataset or backend error) we fall back to `train_classifier`.
     Note: Grid search is not supported for 'cnn'/'cnn_multi' which are trained via separate APIs.
     """
     if model_type in ("cnn", "cnn_multi"):
-        raise ValueError("Grid search is not supported for CNN models; train them using train_cnn_from_sequence or train_cnn")
+        raise ValueError(
+            "Grid search is not supported for CNN models; train them using train_cnn_from_sequence or train_cnn"
+        )
     import warnings
 
     if param_grid is None:
@@ -249,14 +291,27 @@ def train_with_grid_search(X: np.ndarray, y: List[str], model_type: str = "rf", 
 
     # If dataset too small to stratify, skip grid search
     if len(unique) < 2 or min_count < 2:
-        warnings.warn("Skipping grid search due to too few classes or tiny class sizes; training without grid search")
+        warnings.warn(
+            "Skipping grid search due to too few classes or tiny class sizes; training without grid search"
+        )
         return train_classifier(X, y, model_type=model_type, cv=cv, **kwargs)
 
     try:
-        skf = StratifiedKFold(n_splits=max(2, min(cv, int(min_count))), shuffle=True, random_state=0)
-        gs = GridSearchCV(pipe, param_grid=param_grid, cv=skf, scoring=make_scorer(f1_score, average="macro"))
+        skf = StratifiedKFold(
+            n_splits=max(2, min(cv, int(min_count))), shuffle=True, random_state=0
+        )
+        gs = GridSearchCV(
+            pipe,
+            param_grid=param_grid,
+            cv=skf,
+            scoring=make_scorer(f1_score, average="macro"),
+        )
         gs.fit(X, y_enc)
-        return {"model": gs.best_estimator_, "best_params": gs.best_params_, "cv_results": gs.cv_results_}
+        return {
+            "model": gs.best_estimator_,
+            "best_params": gs.best_params_,
+            "cv_results": gs.cv_results_,
+        }
     except Exception as exc:
         warnings.warn(f"GridSearchCV failed: {exc}; falling back to plain training")
         return train_classifier(X, y, model_type=model_type, cv=cv, **kwargs)
@@ -264,7 +319,10 @@ def train_with_grid_search(X: np.ndarray, y: List[str], model_type: str = "rf", 
 
 # --- CNN training helpers -----------------------------------------------------
 
-def balance_classes(X: np.ndarray, y: np.ndarray, strategy: str = "oversample") -> Tuple[np.ndarray, np.ndarray]:
+
+def balance_classes(
+    X: np.ndarray, y: np.ndarray, strategy: str = "oversample"
+) -> Tuple[np.ndarray, np.ndarray]:
     """Balance classes by oversampling or undersampling.
 
     - 'oversample': duplicate samples from minority classes
@@ -276,7 +334,6 @@ def balance_classes(X: np.ndarray, y: np.ndarray, strategy: str = "oversample") 
         X_new, y_new = [], []
         for cls in unique:
             idx = np.where(y == cls)[0]
-            n_samples = len(idx)
             # oversample to target
             sample_idx = np.random.choice(idx, size=target, replace=True)
             X_new.append(X[sample_idx])
@@ -294,7 +351,9 @@ def balance_classes(X: np.ndarray, y: np.ndarray, strategy: str = "oversample") 
     return X, y
 
 
-def augment_windows(X: np.ndarray, y: np.ndarray, n_aug: int = 1, noise_std: float = 0.02) -> Tuple[np.ndarray, np.ndarray]:
+def augment_windows(
+    X: np.ndarray, y: np.ndarray, n_aug: int = 1, noise_std: float = 0.02
+) -> Tuple[np.ndarray, np.ndarray]:
     """Simple data augmentation: add Gaussian noise to create additional samples."""
     X_aug, y_aug = [], []
     for i in range(len(X)):
@@ -307,14 +366,26 @@ def augment_windows(X: np.ndarray, y: np.ndarray, n_aug: int = 1, noise_std: flo
     return np.asarray(X_aug), np.asarray(y_aug)
 
 
-def train_cnn_from_sequence(seq, model_type: str = "cnn_multi", window_s: float = 1.0, hop_s: float = 0.5, fs: int = 100, balance: str | None = "oversample", augment: int = 0, epochs: int = 20, batch_size: int = 16) -> Dict:
+def train_cnn_from_sequence(
+    seq,
+    model_type: str = "cnn_multi",
+    window_s: float = 1.0,
+    hop_s: float = 0.5,
+    fs: int = 100,
+    balance: str | None = "oversample",
+    augment: int = 0,
+    epochs: int = 20,
+    batch_size: int = 16,
+) -> Dict:
     """Train a CNN model from a Sequence using windowing and optional balancing/augmentation.
 
     Returns a dict with 'model' (trained CNN), 'encoder' (LabelEncoder), and 'cv_scores' (empty).
     """
     from maneuvers.preprocessing import windowed_examples_from_sequence
 
-    X, y, windows = windowed_examples_from_sequence(seq, window_s=window_s, hop_s=hop_s, fs=fs)
+    X, y, windows = windowed_examples_from_sequence(
+        seq, window_s=window_s, hop_s=hop_s, fs=fs
+    )
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
 
@@ -331,13 +402,28 @@ def train_cnn_from_sequence(seq, model_type: str = "cnn_multi", window_s: float 
     n_classes = len(np.unique(y_enc))
 
     if model_type == "cnn":
-        clf = _CNN1DClassifier(seq_len=seq_len, n_channels=n_channels, n_classes=n_classes, epochs=epochs, batch_size=batch_size)
+        clf = _CNN1DClassifier(
+            seq_len=seq_len,
+            n_channels=n_channels,
+            n_classes=n_classes,
+            epochs=epochs,
+            batch_size=batch_size,
+        )
     elif model_type == "cnn_multi":
         n_accel = 3
         n_gyro = 3
-        clf = _CNN1DMultiBranchClassifier(seq_len=seq_len, n_accel=n_accel, n_gyro=n_gyro, n_classes=n_classes, epochs=epochs, batch_size=batch_size)
+        clf = _CNN1DMultiBranchClassifier(
+            seq_len=seq_len,
+            n_accel=n_accel,
+            n_gyro=n_gyro,
+            n_classes=n_classes,
+            epochs=epochs,
+            batch_size=batch_size,
+        )
     else:
-        raise ValueError(f"model_type {model_type} not supported for CNN training; use 'cnn' or 'cnn_multi'")
+        raise ValueError(
+            f"model_type {model_type} not supported for CNN training; use 'cnn' or 'cnn_multi'"
+        )
 
     clf.fit(X, y_enc)
     return {"model": clf, "encoder": le, "cv_scores": {}}
@@ -353,7 +439,11 @@ def save_model(obj: Dict, path: str) -> None:
     """
     # detect keras-backed wrappers
     model_obj = obj.get("model") if isinstance(obj, dict) else None
-    if model_obj is not None and hasattr(model_obj, "model") and getattr(model_obj, "model") is not None:
+    if (
+        model_obj is not None
+        and hasattr(model_obj, "model")
+        and getattr(model_obj, "model") is not None
+    ):
         keras_path = path + ".keras"
         try:
             # save keras model
@@ -383,6 +473,7 @@ def load_model(path: str) -> Dict:
             from tensorflow.keras.models import load_model as _tf_load
 
             keras_m = _tf_load(keras_path)
+
             # set as 'model' on a small wrapper
             class _Wrapper:
                 def __init__(self, m):
@@ -400,7 +491,13 @@ def load_model(path: str) -> Dict:
             pass
     return obj
 
-def predict_segment_labels(model_obj: Dict, features_df: pd.DataFrame, segments: List[Tuple[int, int]], seq=None) -> List[str]:
+
+def predict_segment_labels(
+    model_obj: Dict,
+    features_df: pd.DataFrame,
+    segments: List[Tuple[int, int]],
+    seq=None,
+) -> List[str]:
     """Predict labels for detected segments.
 
     For CNN-based models, `seq` (Sequence) should be provided to extract the raw
@@ -411,15 +508,20 @@ def predict_segment_labels(model_obj: Dict, features_df: pd.DataFrame, segments:
     le: LabelEncoder = model_obj["encoder"]
 
     # detect whether model is keras-backed (has predict_proba but expects 3D input)
-    is_keras = hasattr(model, "predict_proba") and not hasattr(model, "__class__") or getattr(model, "model", None) is not None
+    is_keras = (
+        hasattr(model, "predict_proba")
+        and not hasattr(model, "__class__")
+        or getattr(model, "model", None) is not None
+    )
 
     if is_keras:
         if seq is None:
-            raise ValueError("For CNN models, pass the original Sequence `seq` to extract windows for each segment")
+            raise ValueError(
+                "For CNN models, pass the original Sequence `seq` to extract windows for each segment"
+            )
         # for each segment, crop/pad to model input size
         preds = []
         for s, e in segments:
-            seg_len = e - s
             # determine seq_len from model input
             try:
                 seq_len = int(model.model.input_shape[1])

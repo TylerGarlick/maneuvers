@@ -1,10 +1,13 @@
 """Detection and segmentation algorithms (baseline)."""
+
 from __future__ import annotations
 from typing import List, Tuple
 import numpy as np
 
 
-def threshold_segment(signal: np.ndarray, thr: float, min_len: int = 5) -> List[Tuple[int, int]]:
+def threshold_segment(
+    signal: np.ndarray, thr: float, min_len: int = 5
+) -> List[Tuple[int, int]]:
     """Simple threshold-based segmentation on a 1D signal.
 
     Returns list of (start_idx, end_idx) where end_idx is exclusive.

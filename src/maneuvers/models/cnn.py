@@ -4,12 +4,14 @@ Provides _CNN1DClassifier: sklearn-like wrapper around a small Keras 1D-CNN.
 This is optional and will raise an informative ImportError if TensorFlow is
 not installed.
 """
+
 from __future__ import annotations
 import numpy as np
 
 try:
     import tensorflow as tf
     from tensorflow.keras import models, layers, optimizers
+
     HAS_TF = True
 except Exception:
     tf = None
@@ -20,9 +22,18 @@ except Exception:
 
 
 class _CNN1DClassifier:
-    def __init__(self, seq_len: int, n_channels: int = 3, n_classes: int = None, epochs: int = 20, batch_size: int = 16):
+    def __init__(
+        self,
+        seq_len: int,
+        n_channels: int = 3,
+        n_classes: int = None,
+        epochs: int = 20,
+        batch_size: int = 16,
+    ):
         if not HAS_TF:
-            raise ImportError("TensorFlow is required for _CNN1DClassifier. Install tensorflow to use this model.")
+            raise ImportError(
+                "TensorFlow is required for _CNN1DClassifier. Install tensorflow to use this model."
+            )
         self.seq_len = int(seq_len)
         self.n_channels = int(n_channels)
         self.n_classes = n_classes
@@ -39,7 +50,11 @@ class _CNN1DClassifier:
         m.add(layers.GlobalAveragePooling1D())
         m.add(layers.Dense(64, activation="relu"))
         m.add(layers.Dense(n_classes, activation="softmax"))
-        m.compile(optimizer=optimizers.Adam(learning_rate=1e-3), loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+        m.compile(
+            optimizer=optimizers.Adam(learning_rate=1e-3),
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
+        )
         return m
 
     def fit(self, X, y, validation_data=None):
@@ -47,9 +62,20 @@ class _CNN1DClassifier:
         y = np.asarray(y)
         if X.ndim != 3:
             raise ValueError("X must be 3D: (n_samples, seq_len, n_channels)")
-        n_classes = int(np.unique(y).shape[0]) if self.n_classes is None else int(self.n_classes)
+        n_classes = (
+            int(np.unique(y).shape[0])
+            if self.n_classes is None
+            else int(self.n_classes)
+        )
         self.model = self._build(n_classes)
-        self.model.fit(X, y, epochs=self.epochs, batch_size=self.batch_size, verbose=0, validation_data=validation_data)
+        self.model.fit(
+            X,
+            y,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            verbose=0,
+            validation_data=validation_data,
+        )
         return self
 
     def predict_proba(self, X):
@@ -70,9 +96,19 @@ class _CNN1DMultiBranchClassifier:
     Or provide accel and gyro separately as (n_samples, seq_len, n_accel) and (n_samples, seq_len, n_gyro).
     """
 
-    def __init__(self, seq_len: int, n_accel: int = 3, n_gyro: int = 3, n_classes: int = None, epochs: int = 20, batch_size: int = 16):
+    def __init__(
+        self,
+        seq_len: int,
+        n_accel: int = 3,
+        n_gyro: int = 3,
+        n_classes: int = None,
+        epochs: int = 20,
+        batch_size: int = 16,
+    ):
         if not HAS_TF:
-            raise ImportError("TensorFlow is required for _CNN1DMultiBranchClassifier. Install tensorflow to use this model.")
+            raise ImportError(
+                "TensorFlow is required for _CNN1DMultiBranchClassifier. Install tensorflow to use this model."
+            )
         self.seq_len = int(seq_len)
         self.n_accel = int(n_accel)
         self.n_gyro = int(n_gyro)
@@ -89,7 +125,9 @@ class _CNN1DMultiBranchClassifier:
         gyro_in = layers.Lambda(lambda x: x[:, :, self.n_accel :])(inp)
 
         # accel branch
-        a = layers.Conv1D(32, kernel_size=5, activation="relu", padding="same")(accel_in)
+        a = layers.Conv1D(32, kernel_size=5, activation="relu", padding="same")(
+            accel_in
+        )
         a = layers.MaxPool1D(pool_size=2)(a)
         a = layers.Conv1D(64, kernel_size=3, activation="relu", padding="same")(a)
         a = layers.GlobalAveragePooling1D()(a)
@@ -106,7 +144,11 @@ class _CNN1DMultiBranchClassifier:
         out = layers.Dense(n_classes, activation="softmax")(x)
 
         model = models.Model(inputs=inp, outputs=out)
-        model.compile(optimizer=optimizers.Adam(learning_rate=1e-3), loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+        model.compile(
+            optimizer=optimizers.Adam(learning_rate=1e-3),
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
+        )
         return model
 
     def fit(self, X, y, validation_data=None):
@@ -115,10 +157,23 @@ class _CNN1DMultiBranchClassifier:
         if X.ndim != 3:
             raise ValueError("X must be 3D: (n_samples, seq_len, n_channels)")
         if X.shape[2] != (self.n_accel + self.n_gyro):
-            raise ValueError(f"expected n_channels={self.n_accel + self.n_gyro}, got {X.shape[2]}")
-        n_classes = int(np.unique(y).shape[0]) if self.n_classes is None else int(self.n_classes)
+            raise ValueError(
+                f"expected n_channels={self.n_accel + self.n_gyro}, got {X.shape[2]}"
+            )
+        n_classes = (
+            int(np.unique(y).shape[0])
+            if self.n_classes is None
+            else int(self.n_classes)
+        )
         self.model = self._build(n_classes)
-        self.model.fit(X, y, epochs=self.epochs, batch_size=self.batch_size, verbose=0, validation_data=validation_data)
+        self.model.fit(
+            X,
+            y,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            verbose=0,
+            validation_data=validation_data,
+        )
         return self
 
     def predict_proba(self, X):

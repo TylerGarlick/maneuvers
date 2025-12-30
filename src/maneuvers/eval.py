@@ -1,4 +1,5 @@
 """Evaluation utilities for segment detection."""
+
 from __future__ import annotations
 from typing import List, Tuple
 
@@ -20,7 +21,9 @@ def segment_iou(a: Tuple[int, int], b: Tuple[int, int]) -> float:
 
 
 def evaluate_detection(
-    gt_segments: List[Tuple[int, int]], pred_segments: List[Tuple[int, int]], iou_thresh: float = 0.5
+    gt_segments: List[Tuple[int, int]],
+    pred_segments: List[Tuple[int, int]],
+    iou_thresh: float = 0.5,
 ) -> dict:
     """Simple evaluation: counts TP, FP, FN using greedy matching by IoU."""
     matches = []
@@ -45,7 +48,11 @@ def evaluate_detection(
     fn = len(gt_segments) - len(matches)
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+    f1 = (
+        2 * precision * recall / (precision + recall)
+        if (precision + recall) > 0
+        else 0.0
+    )
 
     return {
         "tp": tp,

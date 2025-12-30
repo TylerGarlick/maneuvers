@@ -40,7 +40,15 @@ def test_unit_conversion_deg_to_rad_auto():
 def test_json_loader_per_axis():
     td = tempfile.mkdtemp()
     path = os.path.join(td, "data.json")
-    data = {"time": [0.0, 0.01], "ax": [0.1, 0.2], "ay": [0.0, 0.0], "az": [-0.1, -0.05], "p": [0.01, 0.02], "q": [0.0, 0.0], "r": [0.0, 0.0]}
+    data = {
+        "time": [0.0, 0.01],
+        "ax": [0.1, 0.2],
+        "ay": [0.0, 0.0],
+        "az": [-0.1, -0.05],
+        "p": [0.01, 0.02],
+        "q": [0.0, 0.0],
+        "r": [0.0, 0.0],
+    }
     with open(path, "w") as fh:
         json.dump(data, fh)
     seq = loader.from_json(path)

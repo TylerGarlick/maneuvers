@@ -11,16 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10, 3.11]
+        python-version: ["3.10", "3.11"]
         xgboost: [false, true]
         tensorflow: [false, true]
         exclude:
           # reduce CI matrix size: only test TF on one python version to save time
-          - python-version: 3.8
-            tensorflow: true
-          - python-version: 3.9
-            tensorflow: true
-          - python-version: 3.10
+          - python-version: "3.10"
             tensorflow: true
     steps:
       - uses: actions/checkout@v4

@@ -8,6 +8,7 @@ The signals are intentionally simple: parametric combinations of
 sinusoids, ramps, bumps and noise chosen to resemble the qualitative
 patterns from the MIT maneuvers gallery for demo and unit tests.
 """
+
 from __future__ import annotations
 from typing import Tuple
 import numpy as np
@@ -78,7 +79,6 @@ def synthesize_maneuver(
     accel = 0.03 * rng.standard_normal((N, 3))
     gyro = 0.005 * rng.standard_normal((N, 3))
 
-    amp = 0.6 + 0.4 * rng.random()
     freq = 1.0 + 2.0 * rng.random()
 
     b = _bump(N, shape="hann")
@@ -138,8 +138,13 @@ def synthesize_maneuver(
 
     if name in ("stall", "spin"):
         # noisy high-rate oscillation
-        gyro[:, :] += 0.8 * b[:, None] * (
-            0.5 * np.sin(6 * np.pi * freq * t)[:, None] + 0.2 * rng.standard_normal((N, 3))
+        gyro[:, :] += (
+            0.8
+            * b[:, None]
+            * (
+                0.5 * np.sin(6 * np.pi * freq * t)[:, None]
+                + 0.2 * rng.standard_normal((N, 3))
+            )
         )
         accel[:, :] += 0.6 * b[:, None] * (0.2 * np.cos(2 * np.pi * freq * t)[:, None])
 
