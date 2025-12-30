@@ -57,3 +57,57 @@ pytest
 
 If you plan to publish this package, update the metadata in `pyproject.toml` (author, description, version) and consider adding more tests and CI workflows.
 
+## Resources
+
+### Challenges 
+- https://arxiv.org/abs/2108.11503
+- https://arxiv.org/abs/2211.15552
+
+[Manuever Patterns](https://maneuver-id.mit.edu/maneuvers-0/)
+
+## Tasks
+
+- [X] Setup Python Project
+- [ ] Implement data loader and synthetic data generator
+- [ ] Implement preprocessing & feature extraction
+- [ ] Implement threshold-based detector baseline
+- [ ] Implement evaluation metrics and tests
+
+---
+
+## Baseline scaffold (implemented)
+
+I added a minimal baseline to help get started quickly:
+
+- Synthetic data generator: `src/maneuvers/data/loader.py` (function `generate_synthetic_sequence`)
+- Preprocessing & features: `src/maneuvers/preprocessing.py` (`compute_features_from_sequence`)
+- Threshold detector: `src/maneuvers/detection.py` (`detect_segments`)
+- Evaluation utilities: `src/maneuvers/eval.py` (`segment_iou`, `evaluate_detection`)
+- CLI commands: `src/maneuvers/cli.py` (`detect-synthetic`, `eval-synthetic`)
+- Unit tests: `tests/test_loader.py`, `tests/test_detection.py`, `tests/test_eval.py`, `tests/test_cli.py`
+
+Quickstart (after creating a virtualenv and installing requirements):
+
+```bash
+pip install -r requirements.txt
+pytest
+python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4
+python -m maneuvers.cli eval-synthetic --duration 10 --fs 100 --threshold 0.4
+```
+
+These additions provide a repeatable baseline for running detection experiments and iterating toward the challenge objectives (segmentation, classification, evaluation).
+
+---
+
+## Continuous Integration ✅
+
+A GitHub Actions workflow has been added: `.github/workflows/ci.yml`.
+
+This workflow runs on push and pull requests to `main` and performs the following checks:
+
+- Installs dependencies and the package in editable mode
+- Runs the test suite with `pytest`
+- Runs `black --check` and `flake8` as basic style checks
+
+This should help keep the project testable and maintainable when collaborating via PRs.
+

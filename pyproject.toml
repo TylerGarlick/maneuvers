@@ -10,7 +10,14 @@ readme = "README.md"
 requires-python = ">=3.8"
 authors = [ { name = "Your Name", email = "you@example.com" } ]
 license = { text = "MIT" }
-dependencies = []
+dependencies = [
+    "numpy>=1.23",
+    "pandas>=1.5",
+    "scipy>=1.10",
+    "typer[all]>=0.9",
+    "rich>=13.0",
+]
+
 
 [project.scripts]
 maneuvers = "maneuvers.__main__:main"
