@@ -26,6 +26,15 @@
       "program": "${file}",
       "console": "integratedTerminal",
       "justMyCode": false
+    },
+    {
+      "name": "Python: Debug Tests",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/"],
+      "console": "integratedTerminal",
+      "justMyCode": false
     }
   ]
 }
