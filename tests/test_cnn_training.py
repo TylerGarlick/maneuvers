@@ -28,12 +28,25 @@ def test_augment_windows():
     assert ya.shape[0] == 5 * (1 + 2)
 
 
-@pytest.mark.skipif(__import__('importlib').util.find_spec('tensorflow') is None, reason='tensorflow not installed')
+@pytest.mark.skipif(
+    __import__("importlib").util.find_spec("tensorflow") is None,
+    reason="tensorflow not installed",
+)
 def test_train_cnn_from_sequence():
     from maneuvers.classify import train_cnn_from_sequence
 
     seq = generate_synthetic_sequence(duration_s=4.0, fs=50, seed=0)
-    out = train_cnn_from_sequence(seq, model_type="cnn_multi", window_s=0.8, hop_s=0.4, fs=50, balance="oversample", augment=1, epochs=2, batch_size=8)
+    out = train_cnn_from_sequence(
+        seq,
+        model_type="cnn_multi",
+        window_s=0.8,
+        hop_s=0.4,
+        fs=50,
+        balance="oversample",
+        augment=1,
+        epochs=2,
+        batch_size=8,
+    )
     assert "model" in out
     assert "encoder" in out
     assert out["model"] is not None

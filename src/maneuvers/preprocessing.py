@@ -1,8 +1,8 @@
 """Simple preprocessing and feature extraction helpers."""
+
 from __future__ import annotations
 import numpy as np
 import pandas as pd
-from typing import Dict
 
 
 def accel_magnitude(accel: np.ndarray) -> np.ndarray:
@@ -56,7 +56,10 @@ def compute_features_from_sequence(seq) -> pd.DataFrame:
 
 # --- Windowing helpers --------------------------------------------------------
 
-def windowed_examples_from_sequence(seq, window_s: float = 1.0, hop_s: float = 0.5, fs: int | None = None):
+
+def windowed_examples_from_sequence(
+    seq, window_s: float = 1.0, hop_s: float = 0.5, fs: int | None = None
+):
     """Extract sliding windows from a Sequence and return (X, y, windows)
 
     - X: np.ndarray shaped (n_windows, seq_len, n_channels) where channels are accel (3) then gyro (3) concatenated
@@ -65,8 +68,6 @@ def windowed_examples_from_sequence(seq, window_s: float = 1.0, hop_s: float = 0
 
     The sampling rate `fs` is inferred from timestamps if not provided.
     """
-    import math
-
     if fs is None:
         dt = seq.timestamps[1] - seq.timestamps[0]
         fs = int(round(1.0 / dt))

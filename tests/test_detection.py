@@ -1,4 +1,3 @@
-import numpy as np
 from maneuvers.data.loader import generate_synthetic_sequence
 from maneuvers.preprocessing import compute_features_from_sequence
 from maneuvers.detection import detect_segments

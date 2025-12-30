@@ -1,6 +1,8 @@
 """Data loader and synthetic data generator for maneuvers demo."""
+
 from __future__ import annotations
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Tuple
 import numpy as np
 
@@ -57,9 +59,8 @@ def generate_synthetic_sequence(
 
 
 # --- Dataset generation helpers ------------------------------------------------
-def _write_sequence_csv(path: str | "Path", seq: Sequence) -> None:
+def _write_sequence_csv(path: str | Path, seq: Sequence) -> None:
     import csv
-    from pathlib import Path
 
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -70,11 +71,25 @@ def _write_sequence_csv(path: str | "Path", seq: Sequence) -> None:
             ax, ay, az = seq.accel[i]
             gx, gy, gz = seq.gyro[i]
             writer.writerow(
-                [f"{tt:.6f}", f"{ax:.6f}", f"{ay:.6f}", f"{az:.6f}", f"{gx:.6f}", f"{gy:.6f}", f"{gz:.6f}"]
+                [
+                    f"{tt:.6f}",
+                    f"{ax:.6f}",
+                    f"{ay:.6f}",
+                    f"{az:.6f}",
+                    f"{gx:.6f}",
+                    f"{gy:.6f}",
+                    f"{gz:.6f}",
+                ]
             )
 
 
-def generate_maneuvers_dataset(outdir: str | "Path" = "examples/datasets/maneuvers_small", maneuvers: list | None = None, duration_s: float = 10.0, fs: int = 100, seed: int | None = 0) -> list:
+def generate_maneuvers_dataset(
+    outdir: str | Path = "examples/datasets/maneuvers_small",
+    maneuvers: list | None = None,
+    duration_s: float = 10.0,
+    fs: int = 100,
+    seed: int | None = 0,
+) -> list:
     """Generate a small dataset with one CSV per maneuver and return a manifest.
 
     Returns manifest: list of dicts {"file": str(path), "segments": [(s,e,label)]}
@@ -108,7 +123,9 @@ def generate_maneuvers_dataset(outdir: str | "Path" = "examples/datasets/maneuve
         accel[start:end] += a[: end - start]
         gyro[start:end] += g[: end - start]
 
-        seq = Sequence(timestamps=t, accel=accel, gyro=gyro, segments=[(start, end, name)])
+        seq = Sequence(
+            timestamps=t, accel=accel, gyro=gyro, segments=[(start, end, name)]
+        )
         fname = outdir / f"{i:02d}_{name}.csv"
         _write_sequence_csv(fname, seq)
         manifest.append({"file": str(fname), "segments": seq.segments})
@@ -142,6 +159,7 @@ def from_csv(path: str) -> Sequence:
 
 
 # --- Flight-simulator specific loaders --------------------------------------
+
 
 def _load_csv_rows(path: str):
     """Load CSV into a list of dict rows (case-insensitive keys)."""
@@ -183,13 +201,20 @@ def _detect_units_from_column_names(rows):
     res = {"gyro_units": None, "accel_units": None}
 
     # detect gyro columns with explicit unit hints
-    if any("deg" in k for k in lower_keys) or any("deg_s" in k for k in lower_keys) or any("deg/s" in k for k in lower_keys):
+    if (
+        any("deg" in k for k in lower_keys)
+        or any("deg_s" in k for k in lower_keys)
+        or any("deg/s" in k for k in lower_keys)
+    ):
         res["gyro_units"] = "deg/s"
     if any("rad" in k or "rad_s" in k or "rad/s" in k for k in lower_keys):
         res["gyro_units"] = "rad/s"
 
     # detect accel columns in g or m/s^2
-    if any("g" in k and ("acc" in k or "accel" in k or "udot" in k or "wdot" in k) for k in lower_keys):
+    if any(
+        "g" in k and ("acc" in k or "accel" in k or "udot" in k or "wdot" in k)
+        for k in lower_keys
+    ):
         res["accel_units"] = "g"
     if any("m/s" in k or "m_s" in k or "mps" in k for k in lower_keys):
         res["accel_units"] = "m/s2"
@@ -199,7 +224,13 @@ def _detect_units_from_column_names(rows):
         # collect any gyro-like columns
         gyro_vals = []
         for k in lower_keys:
-            if k in ("p", "q", "r") or "angularvelocity" in k or "roll_rate" in k or "pitch_rate" in k or "yaw_rate" in k:
+            if (
+                k in ("p", "q", "r")
+                or "angularvelocity" in k
+                or "roll_rate" in k
+                or "pitch_rate" in k
+                or "yaw_rate" in k
+            ):
                 gyro_vals.append([float(r[k]) for r in rows])
         if gyro_vals:
             import numpy as _np
@@ -238,28 +269,45 @@ def _detect_units_from_column_names(rows):
     return res
 
 
-def _apply_unit_conversions(accel, gyro, detect_info=None, convert_gyro_deg_to_rad=False, convert_accel_g_to_m_s2=False):
+def _apply_unit_conversions(
+    accel,
+    gyro,
+    detect_info=None,
+    convert_gyro_deg_to_rad=False,
+    convert_accel_g_to_m_s2=False,
+):
     """Apply unit conversions according to flags or detected units."""
     import numpy as _np
+
     if detect_info is None:
         detect_info = {}
 
     # Gyro: deg/s -> rad/s
     gyro_units = detect_info.get("gyro_units")
-    if convert_gyro_deg_to_rad or (convert_gyro_deg_to_rad is None and gyro_units == "deg/s"):
+    if convert_gyro_deg_to_rad or (
+        convert_gyro_deg_to_rad is None and gyro_units == "deg/s"
+    ):
         gyro = gyro * (_np.pi / 180.0)
 
     # Accel: g -> m/s^2
     accel_units = detect_info.get("accel_units")
-    if convert_accel_g_to_m_s2 or (convert_accel_g_to_m_s2 is None and accel_units == "g"):
+    if convert_accel_g_to_m_s2 or (
+        convert_accel_g_to_m_s2 is None and accel_units == "g"
+    ):
         accel = accel * 9.80665
 
     return accel, gyro
 
 
-def _assemble_sequence_from_rows(rows, time_cols, accel_cols, gyro_cols, *,
-                                 convert_gyro_deg_to_rad: bool | None = False,
-                                 convert_accel_g_to_m_s2: bool | None = False):
+def _assemble_sequence_from_rows(
+    rows,
+    time_cols,
+    accel_cols,
+    gyro_cols,
+    *,
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+):
     """Build a Sequence from CSV rows given candidate column names for time, accel, gyro.
 
     Parameters
@@ -278,14 +326,32 @@ def _assemble_sequence_from_rows(rows, time_cols, accel_cols, gyro_cols, *,
         raise KeyError("No axis column found among candidates: %s" % arr_candidates)
 
     # accel candidates as lists of per-axis name lists
-    accel_x_candidates = [["ax", "accx", "accelerationx", "acceleration_x", "accel_x", "udot"]]
-    accel_y_candidates = [["ay", "accy", "accelerationy", "acceleration_y", "accel_y", "vdot"]]
-    accel_z_candidates = [["az", "accz", "accelerationz", "acceleration_z", "accel_z", "wdot"]]
+    accel_x_candidates = [
+        ["ax", "accx", "accelerationx", "acceleration_x", "accel_x", "udot"]
+    ]
+    accel_y_candidates = [
+        ["ay", "accy", "accelerationy", "acceleration_y", "accel_y", "vdot"]
+    ]
+    accel_z_candidates = [
+        ["az", "accz", "accelerationz", "acceleration_z", "accel_z", "wdot"]
+    ]
 
     # gyro candidates (angular rates)
-    gyro_x_candidates = [["p", "roll_rate", "roll_rate_deg_s", "angularvelocityx", "angular_velocity_x"]]
-    gyro_y_candidates = [["q", "pitch_rate", "pitch_rate_deg_s", "angularvelocityy", "angular_velocity_y"]]
-    gyro_z_candidates = [["r", "yaw_rate", "yaw_rate_deg_s", "angularvelocityz", "angular_velocity_z"]]
+    gyro_x_candidates = [
+        ["p", "roll_rate", "roll_rate_deg_s", "angularvelocityx", "angular_velocity_x"]
+    ]
+    gyro_y_candidates = [
+        [
+            "q",
+            "pitch_rate",
+            "pitch_rate_deg_s",
+            "angularvelocityy",
+            "angular_velocity_y",
+        ]
+    ]
+    gyro_z_candidates = [
+        ["r", "yaw_rate", "yaw_rate_deg_s", "angularvelocityz", "angular_velocity_z"]
+    ]
 
     # Get accel axes
     ax = _axis(accel_x_candidates)
@@ -304,14 +370,23 @@ def _assemble_sequence_from_rows(rows, time_cols, accel_cols, gyro_cols, *,
     detect_info = _detect_units_from_column_names(rows)
 
     # Apply conversions according to flags
-    accel, gyro = _apply_unit_conversions(accel, gyro, detect_info,
-                                          convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
-                                          convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+    accel, gyro = _apply_unit_conversions(
+        accel,
+        gyro,
+        detect_info,
+        convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+        convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+    )
 
     return Sequence(timestamps=t, accel=accel, gyro=gyro, segments=None)
 
 
-def from_xplane_csv(path: str, *, convert_gyro_deg_to_rad: bool | None = False, convert_accel_g_to_m_s2: bool | None = False) -> Sequence:
+def from_xplane_csv(
+    path: str,
+    *,
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+) -> Sequence:
     """Load telemetry exported by X-Plane-like CSV files.
 
     Expected columns (case-insensitive): time, ax, ay, az, p, q, r or variants.
@@ -321,36 +396,99 @@ def from_xplane_csv(path: str, *, convert_gyro_deg_to_rad: bool | None = False, 
     - convert_accel_g_to_m_s2: False | True | None
     """
     rows = _load_csv_rows(path)
-    return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["ax", "ay", "az"], gyro_cols=["p", "q", "r"], convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+    return _assemble_sequence_from_rows(
+        rows,
+        time_cols=["time", "t"],
+        accel_cols=["ax", "ay", "az"],
+        gyro_cols=["p", "q", "r"],
+        convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+        convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+    )
 
 
-def from_flightgear_csv(path: str, *, convert_gyro_deg_to_rad: bool | None = False, convert_accel_g_to_m_s2: bool | None = False) -> Sequence:
+def from_flightgear_csv(
+    path: str,
+    *,
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+) -> Sequence:
     """Load telemetry exported by FlightGear-like CSV files.
 
     FlightGear often exports body-axis accelerations as udot/vdot/wdot and angular rates as p/q/r.
     """
     rows = _load_csv_rows(path)
-    return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["udot", "vdot", "wdot"], gyro_cols=["p", "q", "r"], convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+    return _assemble_sequence_from_rows(
+        rows,
+        time_cols=["time", "t"],
+        accel_cols=["udot", "vdot", "wdot"],
+        gyro_cols=["p", "q", "r"],
+        convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+        convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+    )
 
 
-def from_simconnect_csv(path: str, *, convert_gyro_deg_to_rad: bool | None = False, convert_accel_g_to_m_s2: bool | None = False) -> Sequence:
+def from_simconnect_csv(
+    path: str,
+    *,
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+) -> Sequence:
     """Load telemetry exported via SimConnect/MSFS-like CSV files.
 
     Typical column names include AccelerationX/Y/Z and AngularVelocityX/Y/Z.
     """
     rows = _load_csv_rows(path)
-    return _assemble_sequence_from_rows(rows, time_cols=["time", "t", "timestamp"], accel_cols=["accelerationx", "accelerationy", "accelerationz", "accx", "accy", "accz"], gyro_cols=["angularvelocityx", "angularvelocityy", "angularvelocityz", "p", "q", "r"], convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+    return _assemble_sequence_from_rows(
+        rows,
+        time_cols=["time", "t", "timestamp"],
+        accel_cols=[
+            "accelerationx",
+            "accelerationy",
+            "accelerationz",
+            "accx",
+            "accy",
+            "accz",
+        ],
+        gyro_cols=[
+            "angularvelocityx",
+            "angularvelocityy",
+            "angularvelocityz",
+            "p",
+            "q",
+            "r",
+        ],
+        convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+        convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+    )
 
 
-def from_jsbsim_csv(path: str, *, convert_gyro_deg_to_rad: bool | None = False, convert_accel_g_to_m_s2: bool | None = False) -> Sequence:
+def from_jsbsim_csv(
+    path: str,
+    *,
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+) -> Sequence:
     """Load telemetry exported by JSBSim-like CSV files."""
     rows = _load_csv_rows(path)
-    return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["ax", "ay", "az", "udot", "vdot", "wdot"], gyro_cols=["p", "q", "r"], convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+    return _assemble_sequence_from_rows(
+        rows,
+        time_cols=["time", "t"],
+        accel_cols=["ax", "ay", "az", "udot", "vdot", "wdot"],
+        gyro_cols=["p", "q", "r"],
+        convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+        convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+    )
 
 
-def from_csv_filelike(f, *, convert_gyro_deg_to_rad: bool | None = False, convert_accel_g_to_m_s2: bool | None = False) -> Sequence:
+def from_csv_filelike(
+    f,
+    *,
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+) -> Sequence:
     """Load CSV from a file-like object (open file or stream)."""
     import csv
+
     rows = []
     reader = csv.DictReader(f)
     for r in reader:
@@ -361,14 +499,59 @@ def from_csv_filelike(f, *, convert_gyro_deg_to_rad: bool | None = False, conver
     lower_keys = set(rows[0].keys())
     # simple heuristic: use udot->flightgear, accelerationx->simconnect, else xplane/jsbsim
     if any(k.startswith("udot") for k in lower_keys):
-        return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["udot", "vdot", "wdot"], gyro_cols=["p", "q", "r"], convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
-    if any("accelerationx" in k for k in lower_keys) or any(k.startswith("acc") and k.endswith("x") for k in lower_keys):
-        return _assemble_sequence_from_rows(rows, time_cols=["time", "t", "timestamp"], accel_cols=["accelerationx", "accelerationy", "accelerationz", "accx", "accy", "accz"], gyro_cols=["angularvelocityx", "angularvelocityy", "angularvelocityz", "p", "q", "r"], convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+        return _assemble_sequence_from_rows(
+            rows,
+            time_cols=["time", "t"],
+            accel_cols=["udot", "vdot", "wdot"],
+            gyro_cols=["p", "q", "r"],
+            convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+            convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+        )
+    if any("accelerationx" in k for k in lower_keys) or any(
+        k.startswith("acc") and k.endswith("x") for k in lower_keys
+    ):
+        return _assemble_sequence_from_rows(
+            rows,
+            time_cols=["time", "t", "timestamp"],
+            accel_cols=[
+                "accelerationx",
+                "accelerationy",
+                "accelerationz",
+                "accx",
+                "accy",
+                "accz",
+            ],
+            gyro_cols=[
+                "angularvelocityx",
+                "angularvelocityy",
+                "angularvelocityz",
+                "p",
+                "q",
+                "r",
+            ],
+            convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+            convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+        )
     # fallback to xplane-style
-    return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["ax", "ay", "az"], gyro_cols=["p", "q", "r"], convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+    return _assemble_sequence_from_rows(
+        rows,
+        time_cols=["time", "t"],
+        accel_cols=["ax", "ay", "az"],
+        gyro_cols=["p", "q", "r"],
+        convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+        convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+    )
 
 
-def from_json(path: str, *, time_key: str = "time", accel_key: str = "accel", gyro_key: str = "gyro", convert_gyro_deg_to_rad: bool | None = False, convert_accel_g_to_m_s2: bool | None = False) -> Sequence:
+def from_json(
+    path: str,
+    *,
+    time_key: str = "time",
+    accel_key: str = "accel",
+    gyro_key: str = "gyro",
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+) -> Sequence:
     """Load telemetry from a simple JSON file with arrays.
 
     Expected formats supported:
@@ -376,16 +559,35 @@ def from_json(path: str, *, time_key: str = "time", accel_key: str = "accel", gy
       {"time": [...], "ax": [...], "ay": [...], "az": [...], "p": [...], "q": [...], "r": [...]}  (per-axis)
     """
     import json
+
     with open(path, "r") as fh:
         data = json.load(fh)
 
     # per-axis arrays
     if all(k in data for k in ("ax", "ay", "az", "p", "q", "r")):
         t = np.array(data.get(time_key) or data.get("t"), dtype=float)
-        accel = np.vstack([np.array(data["ax"], dtype=float), np.array(data["ay"], dtype=float), np.array(data["az"], dtype=float)]).T
-        gyro = np.vstack([np.array(data["p"], dtype=float), np.array(data["q"], dtype=float), np.array(data["r"], dtype=float)]).T
+        accel = np.vstack(
+            [
+                np.array(data["ax"], dtype=float),
+                np.array(data["ay"], dtype=float),
+                np.array(data["az"], dtype=float),
+            ]
+        ).T
+        gyro = np.vstack(
+            [
+                np.array(data["p"], dtype=float),
+                np.array(data["q"], dtype=float),
+                np.array(data["r"], dtype=float),
+            ]
+        ).T
         detect_info = {"gyro_units": None, "accel_units": None}
-        accel, gyro = _apply_unit_conversions(accel, gyro, detect_info, convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+        accel, gyro = _apply_unit_conversions(
+            accel,
+            gyro,
+            detect_info,
+            convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+            convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+        )
         return Sequence(timestamps=t, accel=accel, gyro=gyro, segments=None)
 
     # nested accel/gyro arrays
@@ -394,7 +596,15 @@ def from_json(path: str, *, time_key: str = "time", accel_key: str = "accel", gy
         accel = np.array(data[accel_key], dtype=float)
         gyro = np.array(data[gyro_key], dtype=float)
         detect_info = {"gyro_units": None, "accel_units": None}
-        accel, gyro = _apply_unit_conversions(accel, gyro, detect_info, convert_gyro_deg_to_rad=convert_gyro_deg_to_rad, convert_accel_g_to_m_s2=convert_accel_g_to_m_s2)
+        accel, gyro = _apply_unit_conversions(
+            accel,
+            gyro,
+            detect_info,
+            convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+            convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+        )
         return Sequence(timestamps=t, accel=accel, gyro=gyro, segments=None)
 
-    raise ValueError("JSON format not recognized; expected per-axis arrays or nested accel/gyro arrays")
+    raise ValueError(
+        "JSON format not recognized; expected per-axis arrays or nested accel/gyro arrays"
+    )
