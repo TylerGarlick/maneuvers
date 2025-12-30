@@ -5,12 +5,15 @@ import pytest
 
 def test_execute_demo_notebook():
     # Skip if nbformat/nbconvert not installed
-    if importlib.util.find_spec("nbformat") is None or importlib.util.find_spec("nbconvert") is None:
+    if (
+        importlib.util.find_spec("nbformat") is None
+        or importlib.util.find_spec("nbconvert") is None
+    ):
         pytest.skip("nbformat and nbconvert not installed")
-    
+
     import nbformat
     from nbconvert.preprocessors import ExecutePreprocessor
-    
+
     nb_path = os.path.join(
         os.path.dirname(__file__),
         "..",
