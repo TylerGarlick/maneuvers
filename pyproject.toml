@@ -7,17 +7,21 @@ name = "maneuvers"
 version = "0.1.0"
 description = "A minimal python application for maneuvers"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [ { name = "Your Name", email = "you@example.com" } ]
 license = { text = "MIT" }
 dependencies = [
     "numpy>=1.23",
     "pandas>=1.5",
     "scipy>=1.10",
+    "scikit-learn>=1.2",
     "typer[all]>=0.9",
     "rich>=13.0",
 ]
 
+[project.optional-dependencies]
+# Developer extras useful for running tests and optional backends
+dev = ["pytest>=7.0", "nbval", "xgboost", "tensorflow", "matplotlib", "joblib"]
 
 [project.scripts]
 maneuvers = "maneuvers.__main__:main"

@@ -1,5 +1,78 @@
 # maneuvers
 
+Detect and classify flight maneuvers from time-series sensor data. The project includes a synthetic data generator, baseline detection and classification pipelines, a Typer-powered CLI, and notebooks for experimentation.
+
+## Installation
+- Requires Python >= 3.10
+- Create and activate a virtual environment, then install dependencies and the package in editable mode:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # on Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+pip install -e .
+```
+
+Run tests to verify the setup:
+
+```bash
+pytest
+```
+
+## Quickstart
+Common end-to-end actions (see [docs/quickstart.md](docs/quickstart.md) for details):
+
+```bash
+# Detect maneuvers on a synthetic sequence
+python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4
+
+# Evaluate detection vs. ground truth
+python -m maneuvers.cli eval-synthetic --duration 10 --fs 100 --threshold 0.4
+
+# Train and save a classifier
+python -m maneuvers.cli train-synthetic --out model.joblib --duration 10 --fs 100
+
+# Use a saved model to label detected segments
+python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4 --model model.joblib
+
+# Execute the demo notebook (requires Jupyter)
+jupyter nbconvert --execute examples/notebooks/detection_classification_demo.ipynb --to html
+```
+
+## Documentation
+All docs live under [docs/index.md](docs/index.md). Key pages:
+- [docs/index.md](docs/index.md) — overview and navigation
+- [docs/installation.md](docs/installation.md) — installation and environment setup
+- [docs/quickstart.md](docs/quickstart.md) — quickstart commands
+- [docs/data.md](docs/data.md) — data formats and simulator CSV loaders
+- [docs/maneuvers_catalog.md](docs/maneuvers_catalog.md) — maneuver catalog and labels
+- [docs/preprocessing.md](docs/preprocessing.md) — preprocessing and feature extraction
+- [docs/detection.md](docs/detection.md) — baseline detector
+- [docs/classification.md](docs/classification.md) — training and evaluation
+- [docs/evaluation.md](docs/evaluation.md) — metrics
+- [docs/cli.md](docs/cli.md) — command reference
+- [docs/notebook.md](docs/notebook.md) — notebooks and CI execution
+- [docs/ci.md](docs/ci.md) — CI details
+- [docs/contributing.md](docs/contributing.md) — contribution guidelines; see [docs/CHANGELOG.md](docs/CHANGELOG.md) for notable changes
+
+## Examples and data
+- Synthetic demo artifacts: [examples/synthetic.csv](examples/synthetic.csv) and [examples/synthetic_gt.json](examples/synthetic_gt.json)
+- Flight-simulator CSV samples: [examples/simulators/](examples/simulators/) for X-Plane, FlightGear, SimConnect/MSFS, and JSBSim
+- Notebooks: [examples/notebooks/](examples/notebooks/) including [examples/notebooks/detection_classification_demo.ipynb](examples/notebooks/detection_classification_demo.ipynb) plus optional XGBoost and CNN demos
+
+## Testing
+Run the full suite:
+
+```bash
+pytest
+```
+
+Notebook execution in CI is covered by nbconvert/nbval; see [docs/ci.md](docs/ci.md).
+
+## Contributing
+See [docs/contributing.md](docs/contributing.md) for workflow, style, and release notes (with [docs/CHANGELOG.md](docs/CHANGELOG.md)).
+# maneuvers
+
 Find and identify maneuvers from Flight Data
 
 ## Getting Started
@@ -52,32 +125,75 @@ Install test dependencies and run tests:
 
 ```bash
 pip install pytest
+## maneuvers
+
+Detect and classify flight maneuvers from time-series sensor data. The project provides a synthetic data generator, baseline detection and classification pipelines, a Typer-powered CLI, and notebooks for experimentation.
+
+```
+## Installation
+- Python >= 3.10 is required.
+- Create and activate a virtualenv, then install dependencies:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # on Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+pip install -e .
+```
+
+Run tests to verify the setup:
+
+```bash
 pytest
 ```
 
-If you plan to publish this package, update the metadata in `pyproject.toml` (author, description, version) and consider adding more tests and CI workflows.
+## Quickstart
+Common end-to-end actions (see the full Quickstart in [docs/quickstart.md](docs/quickstart.md)):
 
-## Resources
+```bash
+# Detect maneuvers on a synthetic sequence
+python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4
+
+# Evaluate detection vs. ground truth
+python -m maneuvers.cli eval-synthetic --duration 10 --fs 100 --threshold 0.4
+
+# Train and save a classifier
+python -m maneuvers.cli train-synthetic --out model.joblib --duration 10 --fs 100
+
+# Use a saved model to label detected segments
+python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4 --model model.joblib
+
+# Execute the demo notebook (requires Jupyter)
+jupyter nbconvert --execute examples/notebooks/detection_classification_demo.ipynb --to html
+```
+
+
+All docs live under the `docs/` folder—start at [docs/index.md](docs/index.md). Key pages:
 
 ### Challenges 
-- https://arxiv.org/abs/2108.11503
+# maneuvers
 - https://arxiv.org/abs/2211.15552
 
 [Manuever Patterns](https://maneuver-id.mit.edu/maneuvers-0/)
-
-## Tasks
-
-- [X] Setup Python Project
-- [ ] Implement data loader and synthetic data generator
-- [ ] Implement preprocessing & feature extraction
-- [ ] Implement threshold-based detector baseline
-- [ ] Implement evaluation metrics and tests
-
+All docs live under [docs/index.md](docs/index.md). Key pages:
+- [docs/index.md](docs/index.md) — overview and navigation
+- [docs/installation.md](docs/installation.md) — installation and environment setup
+- [docs/quickstart.md](docs/quickstart.md) — quickstart examples and commands
+- [docs/data.md](docs/data.md) — data formats and synthetic dataset generation
+- [docs/maneuvers_catalog.md](docs/maneuvers_catalog.md) — maneuver catalog and labels
+- [docs/preprocessing.md](docs/preprocessing.md) — preprocessing and feature extraction
+- [docs/detection.md](docs/detection.md) — detection algorithm and usage
+- [docs/classification.md](docs/classification.md) — classifier training and evaluation
+- [docs/evaluation.md](docs/evaluation.md) — metrics and evaluation workflows
+- [docs/cli.md](docs/cli.md) — CLI commands and examples
+- [docs/notebook.md](docs/notebook.md) — demo notebook usage and CI execution
+- [docs/ci.md](docs/ci.md) — CI configuration and how to run tests/notebooks in CI
+- [docs/contributing.md](docs/contributing.md) — contribution guidelines and code style
 ---
-
-## Baseline scaffold (implemented)
-
-I added a minimal baseline to help get started quickly:
+## Examples and data
+- Synthetic demo artifacts: [examples/synthetic.csv](examples/synthetic.csv) and [examples/synthetic_gt.json](examples/synthetic_gt.json)
+- Flight-simulator CSV samples: files under [examples/simulators/](examples/simulators/) for X-Plane, FlightGear, SimConnect/MSFS, and JSBSim
+- Notebooks: [examples/notebooks/](examples/notebooks/) includes the main [examples/notebooks/detection_classification_demo.ipynb](examples/notebooks/detection_classification_demo.ipynb) plus optional XGBoost and CNN demos
 
 - Synthetic data generator: `src/maneuvers/data/loader.py` (function `generate_synthetic_sequence`)
 - Preprocessing & features: `src/maneuvers/preprocessing.py` (`compute_features_from_sequence`)
@@ -122,7 +238,23 @@ These additions provide a repeatable baseline for running detection experiments 
 
 ## Documentation
 
-Beginner-friendly docs have been added under `docs/` covering installation, data, preprocessing, detection, classification, evaluation, CLI usage, the demo notebook, and CI. Start with `docs/index.md`.
+Comprehensive documentation is available in the `docs/` folder — start at `docs/index.md`. Key pages include:
+
+- `docs/index.md` — overview and navigation
+- `docs/installation.md` — installation and environment setup
+- `docs/quickstart.md` — quickstart examples and commands
+- `docs/data.md` — data formats and synthetic dataset generation
+- `docs/maneuvers_catalog.md` — maneuver catalog and labels
+- `docs/preprocessing.md` — preprocessing and feature extraction
+- `docs/detection.md` — detection algorithm and usage
+- `docs/classification.md` — classifier training and evaluation
+- `docs/evaluation.md` — metrics and evaluation workflows
+- `docs/cli.md` — CLI commands and examples
+- `docs/notebook.md` — demo notebook usage and CI execution
+- `docs/ci.md` — CI configuration and how to run tests/notebooks in CI
+- `docs/contributing.md` — contribution guidelines and code style
+
+View the docs locally with any Markdown viewer or host them as a static site (e.g., GitHub Pages).
 
 ---
 

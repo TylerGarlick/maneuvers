@@ -2,6 +2,7 @@
 
 Usage: python examples/visualize_maneuvers.py --outdir examples/datasets/maneuvers_small/visuals
 """
+
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
