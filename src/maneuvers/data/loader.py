@@ -56,6 +56,69 @@ def generate_synthetic_sequence(
     return Sequence(t, accel, gyro, segments)
 
 
+# --- Dataset generation helpers ------------------------------------------------
+def _write_sequence_csv(path: str | "Path", seq: Sequence) -> None:
+    import csv
+    from pathlib import Path
+
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["t", "ax", "ay", "az", "gx", "gy", "gz"])
+        for i, tt in enumerate(seq.timestamps):
+            ax, ay, az = seq.accel[i]
+            gx, gy, gz = seq.gyro[i]
+            writer.writerow(
+                [f"{tt:.6f}", f"{ax:.6f}", f"{ay:.6f}", f"{az:.6f}", f"{gx:.6f}", f"{gy:.6f}", f"{gz:.6f}"]
+            )
+
+
+def generate_maneuvers_dataset(outdir: str | "Path" = "examples/datasets/maneuvers_small", maneuvers: list | None = None, duration_s: float = 10.0, fs: int = 100, seed: int | None = 0) -> list:
+    """Generate a small dataset with one CSV per maneuver and return a manifest.
+
+    Returns manifest: list of dicts {"file": str(path), "segments": [(s,e,label)]}
+    """
+    from pathlib import Path
+    import json
+    from maneuvers.data.maneuvers_catalog import MANEUVERS, synthesize_maneuver
+
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    if maneuvers is None:
+        maneuvers = MANEUVERS
+
+    rng = np.random.default_rng(seed)
+    manifest = []
+
+    for i, name in enumerate(maneuvers):
+        # create base sequence and place the maneuver in the center
+        N = int(duration_s * fs)
+        t = np.linspace(0.0, duration_s, N, endpoint=False)
+        accel = 0.05 * rng.standard_normal((N, 3))
+        gyro = 0.01 * rng.standard_normal((N, 3))
+
+        man_len_s = 1.0 + 1.0 * rng.random()
+        man_len = int(man_len_s * fs)
+        start = max(0, N // 2 - man_len // 2)
+        end = min(N, start + man_len)
+
+        a, g = synthesize_maneuver(name, man_len_s, fs, rng=rng)
+        accel[start:end] += a[: end - start]
+        gyro[start:end] += g[: end - start]
+
+        seq = Sequence(timestamps=t, accel=accel, gyro=gyro, segments=[(start, end, name)])
+        fname = outdir / f"{i:02d}_{name}.csv"
+        _write_sequence_csv(fname, seq)
+        manifest.append({"file": str(fname), "segments": seq.segments})
+
+    with open(outdir / "manifest.json", "w") as fh:
+        json.dump(manifest, fh, indent=2)
+
+    return manifest
+
+
 def from_csv(path: str) -> Sequence:
     """Minimal CSV loader expected to have columns: t, ax,ay,az, gx,gy,gz"""
     import csv

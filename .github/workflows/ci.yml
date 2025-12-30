@@ -54,8 +54,20 @@ jobs:
           mkdir -p artifacts
           jupyter nbconvert --to html --execute examples/notebooks/detection_classification_demo.ipynb --output artifacts/detection_classification_demo.html --ExecutePreprocessor.timeout=600
 
-      - name: Upload notebook artifact
+      - name: Run gallery notebook (nbconvert & artifact)
+        run: |
+          python -m pip install --upgrade pip
+          pip install jupyter nbconvert
+          mkdir -p artifacts/gallery
+          # Execute and convert gallery notebook; images will be emitted into the dataset's gallery dir
+          jupyter nbconvert --to html --execute examples/notebooks/maneuver_gallery.ipynb --output artifacts/maneuver_gallery.html --ExecutePreprocessor.timeout=600
+          ls -lah examples/datasets/maneuvers_small/gallery || true
+
+      - name: Upload notebook artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: detection-demo-notebook
-          path: artifacts/detection_classification_demo.html
+          name: notebook-artifacts
+          path: |
+            artifacts/detection_classification_demo.html
+            artifacts/maneuver_gallery.html
+            examples/datasets/maneuvers_small/gallery/**

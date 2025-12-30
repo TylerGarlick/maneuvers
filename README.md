@@ -120,6 +120,12 @@ These additions provide a repeatable baseline for running detection experiments 
 
 ---
 
+## Documentation
+
+Beginner-friendly docs have been added under `docs/` covering installation, data, preprocessing, detection, classification, evaluation, CLI usage, the demo notebook, and CI. Start with `docs/index.md`.
+
+---
+
 ## Continuous Integration ✅
 
 A GitHub Actions workflow has been added: `.github/workflows/ci.yml`.

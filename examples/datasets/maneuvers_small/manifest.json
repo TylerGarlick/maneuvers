@@ -1,0 +1,302 @@
+[
+  {
+    "file": "examples/datasets/maneuvers_small/00_left_roll.csv",
+    "segments": [
+      [
+        418,
+        583,
+        "left_roll"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/01_right_roll.csv",
+    "segments": [
+      [
+        439,
+        562,
+        "right_roll"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/02_left_bank.csv",
+    "segments": [
+      [
+        426,
+        574,
+        "left_bank"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/03_right_bank.csv",
+    "segments": [
+      [
+        412,
+        589,
+        "right_bank"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/04_pitch_up.csv",
+    "segments": [
+      [
+        424,
+        576,
+        "pitch_up"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/05_pitch_down.csv",
+    "segments": [
+      [
+        448,
+        553,
+        "pitch_down"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/06_climb.csv",
+    "segments": [
+      [
+        407,
+        593,
+        "climb"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/07_descent.csv",
+    "segments": [
+      [
+        417,
+        583,
+        "descent"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/08_loop.csv",
+    "segments": [
+      [
+        425,
+        576,
+        "loop"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/09_barrel_roll.csv",
+    "segments": [
+      [
+        422,
+        579,
+        "barrel_roll"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/10_aileron_roll.csv",
+    "segments": [
+      [
+        406,
+        595,
+        "aileron_roll"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/11_spiral_climb.csv",
+    "segments": [
+      [
+        428,
+        572,
+        "spiral_climb"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/12_spiral_descent.csv",
+    "segments": [
+      [
+        414,
+        586,
+        "spiral_descent"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/13_corkscrew.csv",
+    "segments": [
+      [
+        426,
+        575,
+        "corkscrew"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/14_s_turn_left.csv",
+    "segments": [
+      [
+        447,
+        554,
+        "s_turn_left"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/15_s_turn_right.csv",
+    "segments": [
+      [
+        438,
+        562,
+        "s_turn_right"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/16_yaw_left.csv",
+    "segments": [
+      [
+        435,
+        565,
+        "yaw_left"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/17_yaw_right.csv",
+    "segments": [
+      [
+        435,
+        566,
+        "yaw_right"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/18_stall.csv",
+    "segments": [
+      [
+        448,
+        552,
+        "stall"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/19_spin.csv",
+    "segments": [
+      [
+        436,
+        564,
+        "spin"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/20_hammerhead.csv",
+    "segments": [
+      [
+        419,
+        582,
+        "hammerhead"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/21_immelmann.csv",
+    "segments": [
+      [
+        410,
+        590,
+        "immelmann"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/22_split_s.csv",
+    "segments": [
+      [
+        422,
+        579,
+        "split_s"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/23_pull_up.csv",
+    "segments": [
+      [
+        435,
+        565,
+        "pull_up"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/24_push_over.csv",
+    "segments": [
+      [
+        423,
+        578,
+        "push_over"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/25_sideslip.csv",
+    "segments": [
+      [
+        433,
+        568,
+        "sideslip"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/26_skid.csv",
+    "segments": [
+      [
+        413,
+        588,
+        "skid"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/27_surge_forward.csv",
+    "segments": [
+      [
+        433,
+        567,
+        "surge_forward"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/28_heave_up.csv",
+    "segments": [
+      [
+        435,
+        566,
+        "heave_up"
+      ]
+    ]
+  },
+  {
+    "file": "examples/datasets/maneuvers_small/29_none.csv",
+    "segments": [
+      [
+        426,
+        575,
+        "none"
+      ]
+    ]
+  }
+]

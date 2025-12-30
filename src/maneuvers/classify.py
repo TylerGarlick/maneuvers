@@ -78,13 +78,49 @@ def build_pipeline(model_type: str = "rf", **kwargs) -> Pipeline:
 
 
 def train_classifier(X: np.ndarray, y: List[str], model_type: str = "rf", cv: int = 5, **kwargs) -> Dict:
-    """Train a classifier and return a dict with model, encoder, and CV scores."""
+    """Train a classifier and return a dict with model, encoder, and CV scores.
+
+    This function is careful about very small sample regimes. If there are fewer
+    than 2 classes or one of the classes has only a single sample, we skip
+    cross-validation and train on the full set to avoid StratifiedKFold errors.
+    """
+    from sklearn.model_selection import StratifiedKFold
+    import warnings
+
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
     pipe = build_pipeline(model_type, **kwargs)
-    scores = cross_validate(pipe, X, y_enc, cv=max(2, cv), scoring={"f1": make_scorer(f1_score, average="macro")}, return_train_score=False)
+
+    unique, counts = np.unique(y_enc, return_counts=True)
+    min_count = counts.min() if len(counts) > 0 else 0
+
+    cv_scores = {}
+
+    # Need at least two classes and each class must have >= 2 samples for StratifiedKFold
+    if len(unique) < 2 or min_count < 2:
+        warnings.warn(
+            "Not enough class variety or too few samples per class for cross-validation; skipping CV."
+        )
+    else:
+        n_splits = min(cv, int(min_count))
+        n_splits = max(2, n_splits)
+        try:
+            skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
+            cv_scores = cross_validate(
+                pipe,
+                X,
+                y_enc,
+                cv=skf,
+                scoring={"f1": make_scorer(f1_score, average="macro")},
+                return_train_score=False,
+                error_score="raise",
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            warnings.warn(f"Cross-validation failed: {exc}; training without CV")
+            cv_scores = {}
+
     pipe.fit(X, y_enc)
-    return {"model": pipe, "encoder": le, "cv_scores": scores}
+    return {"model": pipe, "encoder": le, "cv_scores": cv_scores}
 
 
 def save_model(obj: Dict, path: str) -> None:
