@@ -39,3 +39,23 @@ jobs:
       - name: Run flake8 (lint)
         run: |
           flake8 .
+
+      - name: Run notebook demo (nbval)
+        run: |
+          python -m pip install --upgrade pip
+          pip install nbval nbformat
+          # Run pytest with nbval plugin to execute the demo notebook
+          pytest -q --nbval-lax examples/notebooks/detection_classification_demo.ipynb
+
+      - name: Run notebook demo (nbconvert fallback & artifact)
+        run: |
+          python -m pip install --upgrade pip
+          pip install jupyter nbconvert
+          mkdir -p artifacts
+          jupyter nbconvert --to html --execute examples/notebooks/detection_classification_demo.ipynb --output artifacts/detection_classification_demo.html --ExecutePreprocessor.timeout=600
+
+      - name: Upload notebook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: detection-demo-notebook
+          path: artifacts/detection_classification_demo.html

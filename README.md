@@ -91,9 +91,30 @@ Quickstart (after creating a virtualenv and installing requirements):
 ```bash
 pip install -r requirements.txt
 pytest
+```
+
+Run detection & evaluation on synthetic data with the baseline:
+
+```bash
 python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4
 python -m maneuvers.cli eval-synthetic --duration 10 --fs 100 --threshold 0.4
 ```
+
+Train a simple classifier on a synthetic sequence and save it:
+
+```bash
+python -m maneuvers.cli train-synthetic --out model.joblib --duration 10 --fs 100
+```
+
+Use a saved model to label detected segments:
+
+```bash
+python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4 --model model.joblib
+```
+
+Notebook demo:
+
+- `examples/notebooks/detection_classification_demo.ipynb` demonstrates the full pipeline (generate → detect → train → evaluate) and includes CI-snippets to execute the notebook in CI.
 
 These additions provide a repeatable baseline for running detection experiments and iterating toward the challenge objectives (segmentation, classification, evaluation).
 
@@ -108,6 +129,7 @@ This workflow runs on push and pull requests to `main` and performs the followin
 - Installs dependencies and the package in editable mode
 - Runs the test suite with `pytest`
 - Runs `black --check` and `flake8` as basic style checks
+- Executes the demo notebook `examples/notebooks/detection_classification_demo.ipynb`, converts it to HTML, and uploads the HTML as a CI artifact so results and figures are inspectable from the workflow run
 
-This should help keep the project testable and maintainable when collaborating via PRs.
+This should help keep the project testable and maintainable when collaborating via PRs, and ensures the demo notebook remains executable in CI.
 
