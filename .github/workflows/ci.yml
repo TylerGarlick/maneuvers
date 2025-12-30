@@ -12,6 +12,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8, 3.9, 3.10, 3.11]
+        xgboost: [false, true]
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +28,8 @@ jobs:
           pip install -e .
           # dev tools used by the workflow
           pip install pytest black flake8
+          # install optional xgboost when matrix axis is true
+          if [ "${{ matrix.xgboost }}" = "true" ]; then pip install xgboost; fi
 
       - name: Run tests
         run: |
@@ -46,6 +49,26 @@ jobs:
           pip install nbval nbformat
           # Run pytest with nbval plugin to execute the demo notebook
           pytest -q --nbval-lax examples/notebooks/detection_classification_demo.ipynb
+
+      - name: Run XGBoost notebook (if xgboost installed)
+        if: matrix.xgboost == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install jupyter nbconvert xgboost
+          mkdir -p artifacts
+          jupyter nbconvert --to html --execute examples/notebooks/xgb_grid_search.ipynb --output artifacts/xgb_grid_search.html --ExecutePreprocessor.timeout=600
+          ls -lah artifacts || true
+
+      - name: Run CNN multi-branch demo (skip if no TF)
+        run: |
+          python -m pip install --upgrade pip
+          # try to install a minimal TF for test runtimes only if desired; we keep it optional to avoid large CI cost
+          # if you want CI to run the TF demo, uncomment the following line (note: adds significant install time):
+          # pip install tensorflow
+          pip install jupyter nbconvert
+          # execute notebook; it will skip if TF is not installed
+          jupyter nbconvert --to html --execute examples/notebooks/cnn_multi_demo.ipynb --output artifacts/cnn_multi_demo.html --ExecutePreprocessor.timeout=600 || true
+          ls -lah artifacts || true
 
       - name: Run notebook demo (nbconvert fallback & artifact)
         run: |

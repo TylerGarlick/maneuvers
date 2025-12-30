@@ -139,3 +139,118 @@ def from_csv(path: str) -> Sequence:
     gyro = np.vstack([[float(r["gx"]), float(r["gy"]), float(r["gz"])] for r in rows])
 
     return Sequence(timestamps=t, accel=accel, gyro=gyro, segments=None)
+
+
+# --- Flight-simulator specific loaders --------------------------------------
+
+def _load_csv_rows(path: str):
+    """Load CSV into a list of dict rows (case-insensitive keys)."""
+    import csv
+
+    rows = []
+    with open(path, "r", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for r in reader:
+            # normalize keys to lower-case
+            rows.append({k.lower(): v for k, v in r.items()})
+    return rows
+
+
+def _get_columns(rows, candidates):
+    """Return a list of values for the first matching candidate column name."""
+    if not rows:
+        raise ValueError("CSV contains no rows")
+    keys = set(rows[0].keys())
+    for cand in candidates:
+        if cand.lower() in keys:
+            return np.array([float(r[cand.lower()]) for r in rows], dtype=float)
+    # try exact lower-case candidates
+    for cand in candidates:
+        cl = cand.lower()
+        if cl in keys:
+            return np.array([float(r[cl]) for r in rows], dtype=float)
+    raise KeyError(f"None of the candidate columns were found: {candidates}")
+
+
+def _assemble_sequence_from_rows(rows, time_cols, accel_cols, gyro_cols):
+    """Build a Sequence from CSV rows given candidate column names for time, accel, gyro."""
+    t = _get_columns(rows, time_cols)
+    ax = _get_columns(rows, accel_cols)
+    ay = _get_columns(rows, [c.replace("x", "y") for c in accel_cols]) if any(c.lower().endswith("x") for c in accel_cols) else None
+    az = _get_columns(rows, [c.replace("x", "z") for c in accel_cols]) if any(c.lower().endswith("z") or c.lower().endswith("z") for c in accel_cols) else None
+
+    # More robust: collect per-axis candidates
+    def _axis(arr_candidates):
+        for names in arr_candidates:
+            try:
+                return _get_columns(rows, names)
+            except KeyError:
+                continue
+        raise KeyError("No axis column found among candidates: %s" % arr_candidates)
+
+    # accel candidates as lists of per-axis name lists
+    accel_x_candidates = [["ax", "accx", "accelerationx", "acceleration_x", "accel_x", "udot"]]
+    accel_y_candidates = [["ay", "accy", "accelerationy", "acceleration_y", "accel_y", "vdot"]]
+    accel_z_candidates = [["az", "accz", "accelerationz", "acceleration_z", "accel_z", "wdot"]]
+
+    # gyro candidates (angular rates)
+    gyro_x_candidates = [["p", "roll_rate", "roll_rate_deg_s", "angularvelocityx", "angular_velocity_x"]]
+    gyro_y_candidates = [["q", "pitch_rate", "pitch_rate_deg_s", "angularvelocityy", "angular_velocity_y"]]
+    gyro_z_candidates = [["r", "yaw_rate", "yaw_rate_deg_s", "angularvelocityz", "angular_velocity_z"]]
+
+    # Helper to try candidate groups for a single axis
+    def _axis_single(group_candidates):
+        for names in group_candidates:
+            try:
+                return _get_columns(rows, names)
+            except KeyError:
+                continue
+        raise KeyError("No axis column found among candidates: %s" % group_candidates)
+
+    # Get accel axes
+    ax = _axis_single(accel_x_candidates)
+    ay = _axis_single(accel_y_candidates)
+    az = _axis_single(accel_z_candidates)
+
+    # Get gyro axes
+    gx = _axis_single(gyro_x_candidates)
+    gy = _axis_single(gyro_y_candidates)
+    gz = _axis_single(gyro_z_candidates)
+
+    accel = np.vstack([ax, ay, az]).T
+    gyro = np.vstack([gx, gy, gz]).T
+
+    return Sequence(timestamps=t, accel=accel, gyro=gyro, segments=None)
+
+
+def from_xplane_csv(path: str) -> Sequence:
+    """Load telemetry exported by X-Plane-like CSV files.
+
+    Expected columns (case-insensitive): time, ax, ay, az, p, q, r or variants.
+    """
+    rows = _load_csv_rows(path)
+    return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["ax", "ay", "az"], gyro_cols=["p", "q", "r"])
+
+
+def from_flightgear_csv(path: str) -> Sequence:
+    """Load telemetry exported by FlightGear-like CSV files.
+
+    FlightGear often exports body-axis accelerations as udot/vdot/wdot and angular rates as p/q/r.
+    """
+    rows = _load_csv_rows(path)
+    return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["udot", "vdot", "wdot"], gyro_cols=["p", "q", "r"])
+
+
+def from_simconnect_csv(path: str) -> Sequence:
+    """Load telemetry exported via SimConnect/MSFS-like CSV files.
+
+    Typical column names include AccelerationX/Y/Z and AngularVelocityX/Y/Z.
+    """
+    rows = _load_csv_rows(path)
+    return _assemble_sequence_from_rows(rows, time_cols=["time", "t", "timestamp"], accel_cols=["accelerationx", "accelerationy", "accelerationz", "accx", "accy", "accz"], gyro_cols=["angularvelocityx", "angularvelocityy", "angularvelocityz", "p", "q", "r"])
+
+
+def from_jsbsim_csv(path: str) -> Sequence:
+    """Load telemetry exported by JSBSim-like CSV files."""
+    rows = _load_csv_rows(path)
+    return _assemble_sequence_from_rows(rows, time_cols=["time", "t"], accel_cols=["ax", "ay", "az", "udot", "vdot", "wdot"], gyro_cols=["p", "q", "r"]) 

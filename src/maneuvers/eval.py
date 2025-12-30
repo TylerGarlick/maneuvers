@@ -4,11 +4,16 @@ from typing import List, Tuple
 
 
 def segment_iou(a: Tuple[int, int], b: Tuple[int, int]) -> float:
-    """IoU between two integer-indexed segments. end indices are exclusive."""
+    """IoU between two integer-indexed segments. end indices are exclusive.
+
+    IoU = intersection_length / union_length, where union_length = len(a) + len(b) - intersection_length.
+    """
     s1, e1 = a
     s2, e2 = b
     inter = max(0, min(e1, e2) - max(s1, s2))
-    union = max(e1, e2) - min(s1, s2)
+    len_a = max(0, e1 - s1)
+    len_b = max(0, e2 - s2)
+    union = len_a + len_b - inter
     if union <= 0:
         return 0.0
     return inter / union

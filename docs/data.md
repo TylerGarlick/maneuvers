@@ -22,6 +22,17 @@ Generating synthetic data
 - Use `generate_synthetic_sequence(duration_s=10.0, fs=100)` to create reproducible demo data.
 - Use `from_csv(path)` to load CSV files with columns: `t, ax, ay, az, gx, gy, gz`.
 
+Simulator export formats
+
+This project also provides convenience loaders for common flight-simulator telemetry exports:
+
+- `from_xplane_csv(path)` — X-Plane-like CSVs (e.g., `time, ax, ay, az, p, q, r`)
+- `from_flightgear_csv(path)` — FlightGear-like CSVs (e.g., `time, udot, vdot, wdot, p, q, r`)
+- `from_simconnect_csv(path)` — SimConnect / MSFS CSVs (e.g., `Time, AccelerationX, AccelerationY, AccelerationZ, AngularVelocityX, AngularVelocityY, AngularVelocityZ`)
+- `from_jsbsim_csv(path)` — JSBSim CSVs (similar to X-Plane)
+
+Example CSV files for each of these formats are included under `examples/simulators/` to help you try the loaders quickly.
+
 Why synthetic data? It helps you:
 - Test and debug algorithms quickly
 - Build repeatable unit tests and CI fixtures

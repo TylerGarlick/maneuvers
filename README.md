@@ -122,7 +122,23 @@ These additions provide a repeatable baseline for running detection experiments 
 
 ## Documentation
 
-Beginner-friendly docs have been added under `docs/` covering installation, data, preprocessing, detection, classification, evaluation, CLI usage, the demo notebook, and CI. Start with `docs/index.md`.
+Comprehensive documentation is available in the `docs/` folder — start at `docs/index.md`. Key pages include:
+
+- `docs/index.md` — overview and navigation
+- `docs/installation.md` — installation and environment setup
+- `docs/quickstart.md` — quickstart examples and commands
+- `docs/data.md` — data formats and synthetic dataset generation
+- `docs/maneuvers_catalog.md` — maneuver catalog and labels
+- `docs/preprocessing.md` — preprocessing and feature extraction
+- `docs/detection.md` — detection algorithm and usage
+- `docs/classification.md` — classifier training and evaluation
+- `docs/evaluation.md` — metrics and evaluation workflows
+- `docs/cli.md` — CLI commands and examples
+- `docs/notebook.md` — demo notebook usage and CI execution
+- `docs/ci.md` — CI configuration and how to run tests/notebooks in CI
+- `docs/contributing.md` — contribution guidelines and code style
+
+View the docs locally with any Markdown viewer or host them as a static site (e.g., GitHub Pages).
 
 ---
 
