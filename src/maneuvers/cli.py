@@ -60,23 +60,32 @@ def eval_synthetic(duration: float = 10.0, fs: int = 100, threshold: float = 0.5
 
 
 @app.command()
-def train_synthetic(duration: float = 10.0, fs: int = 100, out: str = "model.joblib"):
-    """Train a simple classifier on one synthetic sequence and save the model."""
+def train_synthetic(duration: float = 10.0, fs: int = 100, out: str = "model.joblib", model_type: str = "rf"):
+    """Train a simple classifier on one synthetic sequence and save the model.
+
+    Supported model_type: rf, logistic, mlp, xgb (requires xgboost), cnn_multi (requires tensorflow).
+    For CNN models, uses windowing and augmentation.
+    """
     seq = generate_synthetic_sequence(duration_s=duration, fs=fs)
-    feats = compute_features_from_sequence(seq)
 
-    from .classify import build_training_data_from_sequence, train_classifier, save_model
+    if model_type in ("cnn", "cnn_multi"):
+        from .classify import train_cnn_from_sequence, save_model
 
-    X, y = build_training_data_from_sequence(seq, feats)
-    # choose a conservative cv based on available samples; handle small sample sizes
-    cv = min(3, max(2, len(X)))
-    try:
-        model_obj = train_classifier(X, y, cv=cv)
-    except ValueError:
-        # fallback to small CV if dataset too small
-        model_obj = train_classifier(X, y, cv=2)
-    save_model(model_obj, out)
-    typer.echo(f"Saved model to {out}")
+        model_obj = train_cnn_from_sequence(seq, model_type=model_type, window_s=1.0, hop_s=0.5, fs=fs, balance="oversample", augment=1, epochs=10, batch_size=8)
+        save_model(model_obj, out)
+        typer.echo(f"Saved CNN model to {out}")
+    else:
+        feats = compute_features_from_sequence(seq)
+        from .classify import build_training_data_from_sequence, train_classifier, save_model
+
+        X, y = build_training_data_from_sequence(seq, feats)
+        cv = min(3, max(2, len(X)))
+        try:
+            model_obj = train_classifier(X, y, model_type=model_type, cv=cv)
+        except ValueError:
+            model_obj = train_classifier(X, y, model_type=model_type, cv=2)
+        save_model(model_obj, out)
+        typer.echo(f"Saved model to {out}")
 
 
 if __name__ == "__main__":

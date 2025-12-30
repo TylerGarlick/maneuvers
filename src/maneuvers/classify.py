@@ -13,7 +13,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import make_scorer, f1_score
+from maneuvers.models.cnn import _CNN1DClassifier, _CNN1DMultiBranchClassifier
 
+import numpy as np
+from collections import Counter
 # optional backends
 try:
     from xgboost import XGBClassifier
@@ -96,10 +99,12 @@ def build_pipeline(model_type: str = "rf", **kwargs) -> Pipeline:
       - 'mlp' : sklearn MLPClassifier (lightweight neural net)
       - 'xgb' : XGBoost XGBClassifier (optional, requires `xgboost` package)
       - 'cnn' : simple 1D-CNN using TensorFlow (optional, requires `tensorflow`)
+      - 'cnn_multi' : multi-branch 1D-CNN processing accel and gyro channels separately (optional)
 
-    The 'cnn' pipeline expects input arrays shaped for time-series (n_samples, seq_len, n_channels)
-    and is provided as an optional experiment. If the required backend isn't installed
-    an informative error is raised.
+    The 'cnn'/'cnn_multi' pipelines produce Keras-backed wrappers that expect
+    3D time-series inputs and therefore don't play with sklearn cross-validation
+    in a standard way. Use the specialized training helpers in this module to
+    train and evaluate them (for example `train_cnn_from_sequence`).
     """
     model_type = model_type.lower()
     if model_type == "rf":
@@ -119,8 +124,11 @@ def build_pipeline(model_type: str = "rf", **kwargs) -> Pipeline:
     if model_type == "cnn":
         if not HAS_TF:
             raise ImportError("TensorFlow is not installed. Install `tensorflow` to use model_type='cnn'.")
-        # note: we wrap a Keras model via a sklearn-compatible class defined below
-        return Pipeline([("scaler", StandardScaler()), ("clf", _KerasDenseClassifier(**kwargs))])
+        return _CNN1DClassifier
+    if model_type == "cnn_multi":
+        if not HAS_TF:
+            raise ImportError("TensorFlow is not installed. Install `tensorflow` to use model_type='cnn_multi'.")
+        return _CNN1DMultiBranchClassifier
 
     raise ValueError(f"unknown model_type: {model_type}")
 
@@ -217,7 +225,10 @@ def train_with_grid_search(X: np.ndarray, y: List[str], model_type: str = "rf", 
     """Train with GridSearchCV and return the best model and results.
 
     If grid search fails (e.g., tiny dataset or backend error) we fall back to `train_classifier`.
+    Note: Grid search is not supported for 'cnn'/'cnn_multi' which are trained via separate APIs.
     """
+    if model_type in ("cnn", "cnn_multi"):
+        raise ValueError("Grid search is not supported for CNN models; train them using train_cnn_from_sequence or train_cnn")
     import warnings
 
     if param_grid is None:
@@ -251,17 +262,189 @@ def train_with_grid_search(X: np.ndarray, y: List[str], model_type: str = "rf", 
         return train_classifier(X, y, model_type=model_type, cv=cv, **kwargs)
 
 
+# --- CNN training helpers -----------------------------------------------------
+
+def balance_classes(X: np.ndarray, y: np.ndarray, strategy: str = "oversample") -> Tuple[np.ndarray, np.ndarray]:
+    """Balance classes by oversampling or undersampling.
+
+    - 'oversample': duplicate samples from minority classes
+    - 'undersample': subsample majority classes
+    """
+    unique, counts = np.unique(y, return_counts=True)
+    if strategy == "oversample":
+        target = counts.max()
+        X_new, y_new = [], []
+        for cls in unique:
+            idx = np.where(y == cls)[0]
+            n_samples = len(idx)
+            # oversample to target
+            sample_idx = np.random.choice(idx, size=target, replace=True)
+            X_new.append(X[sample_idx])
+            y_new.append(y[sample_idx])
+        return np.vstack(X_new), np.concatenate(y_new)
+    elif strategy == "undersample":
+        target = counts.min()
+        X_new, y_new = [], []
+        for cls in unique:
+            idx = np.where(y == cls)[0]
+            sample_idx = np.random.choice(idx, size=target, replace=False)
+            X_new.append(X[sample_idx])
+            y_new.append(y[sample_idx])
+        return np.vstack(X_new), np.concatenate(y_new)
+    return X, y
+
+
+def augment_windows(X: np.ndarray, y: np.ndarray, n_aug: int = 1, noise_std: float = 0.02) -> Tuple[np.ndarray, np.ndarray]:
+    """Simple data augmentation: add Gaussian noise to create additional samples."""
+    X_aug, y_aug = [], []
+    for i in range(len(X)):
+        X_aug.append(X[i])
+        y_aug.append(y[i])
+        for _ in range(n_aug):
+            noise = np.random.normal(0, noise_std, X[i].shape)
+            X_aug.append(X[i] + noise)
+            y_aug.append(y[i])
+    return np.asarray(X_aug), np.asarray(y_aug)
+
+
+def train_cnn_from_sequence(seq, model_type: str = "cnn_multi", window_s: float = 1.0, hop_s: float = 0.5, fs: int = 100, balance: str | None = "oversample", augment: int = 0, epochs: int = 20, batch_size: int = 16) -> Dict:
+    """Train a CNN model from a Sequence using windowing and optional balancing/augmentation.
+
+    Returns a dict with 'model' (trained CNN), 'encoder' (LabelEncoder), and 'cv_scores' (empty).
+    """
+    from maneuvers.preprocessing import windowed_examples_from_sequence
+
+    X, y, windows = windowed_examples_from_sequence(seq, window_s=window_s, hop_s=hop_s, fs=fs)
+    le = LabelEncoder()
+    y_enc = le.fit_transform(y)
+
+    # balance
+    if balance:
+        X, y_enc = balance_classes(X, y_enc, strategy=balance)
+    # augment
+    if augment > 0:
+        X, y_enc = augment_windows(X, y_enc, n_aug=augment)
+
+    # build model
+    seq_len = X.shape[1]
+    n_channels = X.shape[2]
+    n_classes = len(np.unique(y_enc))
+
+    if model_type == "cnn":
+        clf = _CNN1DClassifier(seq_len=seq_len, n_channels=n_channels, n_classes=n_classes, epochs=epochs, batch_size=batch_size)
+    elif model_type == "cnn_multi":
+        n_accel = 3
+        n_gyro = 3
+        clf = _CNN1DMultiBranchClassifier(seq_len=seq_len, n_accel=n_accel, n_gyro=n_gyro, n_classes=n_classes, epochs=epochs, batch_size=batch_size)
+    else:
+        raise ValueError(f"model_type {model_type} not supported for CNN training; use 'cnn' or 'cnn_multi'")
+
+    clf.fit(X, y_enc)
+    return {"model": clf, "encoder": le, "cv_scores": {}}
+
+
 def save_model(obj: Dict, path: str) -> None:
+    """Save a model object. If model contains a Keras model, save it separately.
+
+    Behavior:
+    - For Keras-based classifiers (CNN), save the Keras model to path + '.keras',
+      and joblib-dump the rest of the object (with a placeholder indicating the keras path).
+    - For sklearn objects, joblib-dump the whole dict.
+    """
+    # detect keras-backed wrappers
+    model_obj = obj.get("model") if isinstance(obj, dict) else None
+    if model_obj is not None and hasattr(model_obj, "model") and getattr(model_obj, "model") is not None:
+        keras_path = path + ".keras"
+        try:
+            # save keras model
+            model_obj.model.save(keras_path, overwrite=True, include_optimizer=True)
+            # remove large keras object from dict and replace with a reference
+            stub = obj.copy()
+            stub = dict(stub)
+            stub["_keras_path"] = keras_path
+            # don't include the model object itself (not picklable safely)
+            if "model" in stub:
+                del stub["model"]
+            joblib.dump(stub, path)
+            return
+        except Exception:
+            # fallback to saving whole object (might fail)
+            pass
     joblib.dump(obj, path)
 
 
 def load_model(path: str) -> Dict:
-    return joblib.load(path)
+    """Load a model saved by `save_model`. Restores keras models when present."""
+    obj = joblib.load(path)
+    if isinstance(obj, dict) and "_keras_path" in obj:
+        keras_path = obj["_keras_path"]
+        # load keras model
+        try:
+            from tensorflow.keras.models import load_model as _tf_load
 
+            keras_m = _tf_load(keras_path)
+            # set as 'model' on a small wrapper
+            class _Wrapper:
+                def __init__(self, m):
+                    self.model = m
 
-def predict_segment_labels(model_obj: Dict, features_df: pd.DataFrame, segments: List[Tuple[int, int]]) -> List[str]:
+                def predict(self, X):
+                    return self.model.predict(X)
+
+                def predict_proba(self, X):
+                    return self.model.predict(X)
+
+            w = _Wrapper(keras_m)
+            obj["model"] = w
+        except Exception:
+            pass
+    return obj
+
+def predict_segment_labels(model_obj: Dict, features_df: pd.DataFrame, segments: List[Tuple[int, int]], seq=None) -> List[str]:
+    """Predict labels for detected segments.
+
+    For CNN-based models, `seq` (Sequence) should be provided to extract the raw
+    accel/gyro windows; for feature-based models the existing aggregated-feature
+    logic is used.
+    """
     model = model_obj["model"]
     le: LabelEncoder = model_obj["encoder"]
+
+    # detect whether model is keras-backed (has predict_proba but expects 3D input)
+    is_keras = hasattr(model, "predict_proba") and not hasattr(model, "__class__") or getattr(model, "model", None) is not None
+
+    if is_keras:
+        if seq is None:
+            raise ValueError("For CNN models, pass the original Sequence `seq` to extract windows for each segment")
+        # for each segment, crop/pad to model input size
+        preds = []
+        for s, e in segments:
+            seg_len = e - s
+            # determine seq_len from model input
+            try:
+                seq_len = int(model.model.input_shape[1])
+            except Exception:
+                # fallback to 100 samples
+                seq_len = 100
+            start = max(0, s)
+            end = min(seq.accel.shape[0], e)
+            win_acc = seq.accel[start:end]
+            win_gyro = seq.gyro[start:end]
+            # pad or crop to seq_len
+            if win_acc.shape[0] < seq_len:
+                pad_n = seq_len - win_acc.shape[0]
+                win_acc = np.vstack([win_acc, np.zeros((pad_n, win_acc.shape[1]))])
+                win_gyro = np.vstack([win_gyro, np.zeros((pad_n, win_gyro.shape[1]))])
+            else:
+                win_acc = win_acc[:seq_len]
+                win_gyro = win_gyro[:seq_len]
+            Xwin = np.concatenate([win_acc, win_gyro], axis=1)[None, ...]
+            proba = model.predict_proba(Xwin)
+            idx = int(proba.argmax(axis=1)[0])
+            preds.append(le.inverse_transform([idx])[0])
+        return preds
+
+    # fallback to aggregated features
     X = [segment_aggregated_features(features_df, seg) for seg in segments]
     proba = model.predict_proba(np.vstack(X))
     idx = proba.argmax(axis=1)
