@@ -1,9 +1,19 @@
-import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor
+import importlib
 from pathlib import Path
+import pytest
 
 
 def test_execute_gallery_notebook(tmp_path: Path):
+    # Skip if nbformat/nbconvert not installed
+    if (
+        importlib.util.find_spec("nbformat") is None
+        or importlib.util.find_spec("nbconvert") is None
+    ):
+        pytest.skip("nbformat and nbconvert not installed")
+
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor
+
     nb_path = Path("examples/notebooks/maneuver_gallery.ipynb")
     nb = nbformat.read(str(nb_path), as_version=4)
     # ensure dataset exists at repo-relative examples/datasets/maneuvers_small
