@@ -51,8 +51,20 @@ def segment_aggregated_features(
     mean_gyro = seg["gyro_mag"].mean()
     energy = (seg["accel_mag"] ** 2).sum()
     length = e - s
+    
+    # FFT-based features
+    from scipy.fft import fft
+    accel_signal = seg["accel_mag"].values
+    if len(accel_signal) > 1:
+        fft_vals = np.abs(fft(accel_signal))
+        dominant_freq = np.argmax(fft_vals[1:]) + 1  # skip DC
+        fft_energy = np.sum(fft_vals**2)
+    else:
+        dominant_freq = 0
+        fft_energy = 0
+    
     return np.array(
-        [mean_accel, std_accel, max_accel, min_accel, mean_gyro, energy, length],
+        [mean_accel, std_accel, max_accel, min_accel, mean_gyro, energy, length, dominant_freq, fft_energy],
         dtype=float,
     )
 
@@ -206,13 +218,15 @@ class _KerasDenseClassifier:
 
 
 def train_classifier(
-    X: np.ndarray, y: List[str], model_type: str = "rf", cv: int = 5, **kwargs
+    X: np.ndarray, y: List[str], model_type: str = "rf", cv: int = 5, param_grid: dict | None = None, **kwargs
 ) -> Dict:
-    """Train a classifier and return a dict with model, encoder, and CV scores.
+    """Train a classifier with optional hyperparameter tuning and return a dict with model, encoder, and CV scores.
 
     This function is careful about very small sample regimes. If there are fewer
     than 2 classes or one of the classes has only a single sample, we skip
     cross-validation and train on the full set to avoid StratifiedKFold errors.
+    
+    If param_grid is provided, uses GridSearchCV for hyperparameter tuning.
     """
     import warnings
 
@@ -232,25 +246,43 @@ def train_classifier(
         warnings.warn(
             "Not enough class variety or too few samples per class for cross-validation; skipping CV."
         )
+        if param_grid:
+            warnings.warn("Skipping grid search due to small dataset")
+        pipe.fit(X, y_enc)
     else:
         n_splits = min(cv, int(min_count))
         n_splits = max(2, n_splits)
         try:
-            skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
-            cv_scores = cross_validate(
-                pipe,
-                X,
-                y_enc,
-                cv=skf,
-                scoring={"f1": make_scorer(f1_score, average="macro")},
-                return_train_score=False,
-                error_score="raise",
-            )
+            if param_grid:
+                # Use GridSearchCV for tuning
+                gs = GridSearchCV(
+                    pipe,
+                    param_grid,
+                    cv=n_splits,
+                    scoring="f1_macro",
+                    n_jobs=-1,
+                    error_score="raise",
+                )
+                gs.fit(X, y_enc)
+                pipe = gs.best_estimator_
+                cv_scores = {"best_params": gs.best_params_, "best_score": gs.best_score_}
+            else:
+                skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
+                cv_scores = cross_validate(
+                    pipe,
+                    X,
+                    y_enc,
+                    cv=skf,
+                    scoring={"f1": make_scorer(f1_score, average="macro")},
+                    return_train_score=False,
+                    error_score="raise",
+                )
+                pipe.fit(X, y_enc)
         except Exception as exc:  # pragma: no cover - defensive
-            warnings.warn(f"Cross-validation failed: {exc}; training without CV")
+            warnings.warn(f"Training failed: {exc}; training without CV/tuning")
             cv_scores = {}
+            pipe.fit(X, y_enc)
 
-    pipe.fit(X, y_enc)
     return {"model": pipe, "encoder": le, "cv_scores": cv_scores}
 
 
