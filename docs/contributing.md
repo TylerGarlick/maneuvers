@@ -36,3 +36,9 @@ Submitting a PR
 - CI will run tests and checks; address comments and push fixes to the branch.
 
 If you'd like help designing a feature or tests, open an issue or ask for review in the PR — happy to help.
+
+---
+
+## Release notes & changelog
+
+We keep a short changelog at `docs/CHANGELOG.md` that summarizes notable changes and upgrades. Please add an entry under **Unreleased** when submitting bug fixes or backwards-incompatible changes (e.g., bumping Python requirements).
