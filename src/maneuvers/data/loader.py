@@ -3,7 +3,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import numpy as np
 
 
@@ -13,6 +13,9 @@ class Sequence:
     accel: np.ndarray  # shape (N, 3)
     gyro: np.ndarray  # shape (N, 3)
     segments: List[Tuple[int, int, str]] = None  # list of (start_idx, end_idx, label)
+    pos: Optional[np.ndarray] = None  # shape (N, 3) - positions x,y,z
+    vel: Optional[np.ndarray] = None  # shape (N, 3) - velocities vx,vy,vz
+    orient: Optional[np.ndarray] = None  # shape (N, 3) - orientations roll,pitch,yaw
 
 
 def generate_synthetic_sequence(
@@ -607,4 +610,69 @@ def from_json(
 
     raise ValueError(
         "JSON format not recognized; expected per-axis arrays or nested accel/gyro arrays"
+    )
+
+
+def load_t6a_sequence(
+    path: str,
+    *,
+    convert_gyro_deg_to_rad: bool | None = False,
+    convert_accel_g_to_m_s2: bool | None = False,
+) -> Sequence:
+    """Load T-6A Texan II maneuver data from CSV.
+
+    Expected columns: time, pos_x, pos_y, pos_z, vel_x, vel_y, vel_z,
+    orient_roll, orient_pitch, orient_yaw, accel_x, accel_y, accel_z,
+    gyro_p, gyro_q, gyro_r
+
+    Positions in meters, velocities in m/s, orientations in radians (or degrees if converted),
+    accel in m/s² or g, gyro in rad/s or deg/s.
+    """
+    import csv
+
+    rows = []
+    with open(path, "r", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for r in reader:
+            rows.append(r)
+
+    if not rows:
+        raise ValueError("CSV contains no rows")
+
+    # Extract data
+    t = np.array([float(r["time"]) for r in rows], dtype=float)
+    pos = np.vstack([
+        [float(r["pos_x"]), float(r["pos_y"]), float(r["pos_z"])] for r in rows
+    ])
+    vel = np.vstack([
+        [float(r["vel_x"]), float(r["vel_y"]), float(r["vel_z"])] for r in rows
+    ])
+    orient = np.vstack([
+        [float(r["orient_roll"]), float(r["orient_pitch"]), float(r["orient_yaw"])] for r in rows
+    ])
+    accel = np.vstack([
+        [float(r["accel_x"]), float(r["accel_y"]), float(r["accel_z"])] for r in rows
+    ])
+    gyro = np.vstack([
+        [float(r["gyro_p"]), float(r["gyro_q"]), float(r["gyro_r"])] for r in rows
+    ])
+
+    # Apply unit conversions if needed
+    detect_info = {"gyro_units": None, "accel_units": None}
+    accel, gyro = _apply_unit_conversions(
+        accel,
+        gyro,
+        detect_info,
+        convert_gyro_deg_to_rad=convert_gyro_deg_to_rad,
+        convert_accel_g_to_m_s2=convert_accel_g_to_m_s2,
+    )
+
+    return Sequence(
+        timestamps=t,
+        accel=accel,
+        gyro=gyro,
+        segments=None,
+        pos=pos,
+        vel=vel,
+        orient=orient,
     )

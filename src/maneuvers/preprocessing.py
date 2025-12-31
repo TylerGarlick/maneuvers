@@ -12,7 +12,7 @@ def accel_magnitude(accel: np.ndarray) -> np.ndarray:
 
 def moving_average(x: np.ndarray, window: int = 5) -> np.ndarray:
     """Simple moving average (causal)"""
-    if window <= 1 or len(x) < window:
+    if window <= 1:
         return x
     # If the sequence is shorter than the window, return the mean as a flat signal
     if len(x) < window:
@@ -29,6 +29,9 @@ def compute_features_from_sequence(seq) -> pd.DataFrame:
     - accel_mag: magnitude of acceleration
     - accel_mag_smooth: moving-average smoothed magnitude
     - gyro_mag: magnitude of angular rate
+    - pos_mag: magnitude of position (if available)
+    - vel_mag: magnitude of velocity (if available)
+    - orient_mag: magnitude of orientation (if available)
     """
     accel_mag = accel_magnitude(seq.accel)
     gyro_mag = np.linalg.norm(seq.gyro, axis=1)
@@ -38,14 +41,23 @@ def compute_features_from_sequence(seq) -> pd.DataFrame:
     pad = np.full(len(accel_mag) - len(smooth), smooth[0])
     accel_smooth = np.concatenate([pad, smooth])
 
-    df = pd.DataFrame(
-        {
-            "t": seq.timestamps,
-            "accel_mag": accel_mag,
-            "accel_smooth": accel_smooth,
-            "gyro_mag": gyro_mag,
-        }
-    )
+    features = {
+        "t": seq.timestamps,
+        "accel_mag": accel_mag,
+        "accel_smooth": accel_smooth,
+        "gyro_mag": gyro_mag,
+    }
+
+    if seq.pos is not None:
+        features["pos_mag"] = np.linalg.norm(seq.pos, axis=1)
+
+    if seq.vel is not None:
+        features["vel_mag"] = np.linalg.norm(seq.vel, axis=1)
+
+    if seq.orient is not None:
+        features["orient_mag"] = np.linalg.norm(seq.orient, axis=1)
+
+    df = pd.DataFrame(features)
     return df
 
 

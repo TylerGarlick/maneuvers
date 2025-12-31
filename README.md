@@ -24,16 +24,22 @@ Common end-to-end actions (see [docs/quickstart.md](docs/quickstart.md) for deta
 
 ```bash
 # Detect maneuvers on a synthetic sequence
-python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4
+maneuvers detect-synthetic --duration 10 --fs 100 --threshold 0.4
 
 # Evaluate detection vs. ground truth
-python -m maneuvers.cli eval-synthetic --duration 10 --fs 100 --threshold 0.4
+maneuvers eval-synthetic --duration 10 --fs 100 --threshold 0.4
 
-# Train and save a classifier
-python -m maneuvers.cli train-synthetic --out model.joblib --duration 10 --fs 100
+# Train and save a classifier (enhanced with multiple sequences and maneuvers_small)
+maneuvers train-synthetic --out model.joblib --duration 10 --fs 100 --num-sequences 20
 
 # Use a saved model to label detected segments
-python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4 --model model.joblib
+maneuvers detect-synthetic --duration 10 --fs 100 --threshold 0.4 --model model.joblib
+
+# Export labeled segments with scores
+maneuvers export-detect --out maneuvers_export.json --model model.joblib
+
+# Generate 3D flight path plot
+maneuvers plot-3d --out flight_path_3d.png --model model.joblib
 
 # Execute the demo notebook (requires Jupyter)
 jupyter nbconvert --execute examples/notebooks/detection_classification_demo.ipynb --to html
@@ -170,7 +176,7 @@ jupyter nbconvert --execute examples/notebooks/detection_classification_demo.ipy
 
 All docs live under the `docs/` folder—start at [docs/index.md](docs/index.md). Key pages:
 
-### Challenges 
+### Challenges
 # maneuvers
 - https://arxiv.org/abs/2211.15552
 
@@ -270,4 +276,3 @@ This workflow runs on push and pull requests to `main` and performs the followin
 - Executes the demo notebook `examples/notebooks/detection_classification_demo.ipynb`, converts it to HTML, and uploads the HTML as a CI artifact so results and figures are inspectable from the workflow run
 
 This should help keep the project testable and maintainable when collaborating via PRs, and ensures the demo notebook remains executable in CI.
-

@@ -64,6 +64,50 @@ def eval_synthetic(duration: float = 10.0, fs: int = 100, threshold: float = 0.5
 
 
 @app.command()
+def detect_real(
+    data_path: str,
+    threshold: float = 0.5,
+    min_len: int = 5,
+    out: Optional[str] = None,
+    model: Optional[str] = None,
+):
+    """Load real T-6A sequence from CSV and run baseline detection. Optionally label segments using a saved model."""
+    from .data.loader import load_t6a_sequence
+    from .data.quality import check_minimum_requirements
+
+    seq = load_t6a_sequence(data_path)
+    quality = check_minimum_requirements(seq)
+    if not quality["valid"]:
+        typer.echo(f"Quality check failed: {quality['issues']}")
+        return
+
+    feats = compute_features_from_sequence(seq)
+    preds = detect_segments(
+        feats, method="threshold", threshold=threshold, min_len=min_len
+    )
+
+    labels = None
+    if model:
+        try:
+            from .classify import load_model, predict_segment_labels
+
+            mobj = load_model(model)
+            labels = predict_segment_labels(mobj, feats, preds)
+        except Exception as e:
+            typer.echo(f"Failed to load/label with model {model}: {e}")
+
+    if labels is not None:
+        paired = list(zip(preds, labels))
+        typer.echo(f"Detected {len(preds)} segments: {paired}")
+    else:
+        typer.echo(f"Detected {len(preds)} segments: {preds}")
+
+    if out:
+        with open(out, "w") as fh:
+            json.dump({"predictions": preds, "labels": labels}, fh)
+
+
+@app.command()
 def plot_3d(
     duration: float = 10.0,
     fs: int = 100,
@@ -144,14 +188,14 @@ def train_synthetic(
     """
     from pathlib import Path
     import json
-    
+
     sequences = []
-    
+
     # Generate multiple synthetic sequences
     for i in range(num_sequences):
         seq = generate_synthetic_sequence(duration_s=duration, fs=fs, seed=i)
         sequences.append(seq)
-    
+
     # Load maneuvers_small if available
     if use_maneuvers_small:
         outdir = Path("examples/datasets/maneuvers_small")
@@ -197,22 +241,22 @@ def train_synthetic(
             X_seq, y_seq = build_training_data_from_sequence(seq, feats)
             X_list.append(X_seq)
             y_list.extend(y_seq)
-        
+
         X = np.vstack(X_list) if X_list else np.array([])
         y = y_list
-        
+
         if len(X) == 0:
             typer.echo("No training data generated")
             return
-        
+
         # Use grid search for tuning
         param_grid = None
         if model_type == "rf":
             param_grid = {"clf__n_estimators": [50, 100], "clf__max_depth": [None, 10]}
-        
+
         cv = min(5, max(2, len(np.unique(y))))
         model_obj = train_classifier(X, y, model_type=model_type, cv=cv, param_grid=param_grid)
-        
+
         # Add metadata
         model_obj["training_params"] = {
             "duration": duration,
@@ -221,7 +265,7 @@ def train_synthetic(
             "use_maneuvers_small": use_maneuvers_small,
             "model_type": model_type,
         }
-        
+
         save_model(model_obj, out)
         typer.echo(f"Saved model to {out} with CV scores: {model_obj.get('cv_scores', {})}")
 

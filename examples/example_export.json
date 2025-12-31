@@ -1,0 +1,29 @@
+[
+  {
+    "label": "climb",
+    "start_idx": 127,
+    "end_idx": 193,
+    "start_time": 1.27,
+    "end_time": 1.92,
+    "duration": 0.6499999999999999,
+    "score": 0.54
+  },
+  {
+    "label": "climb",
+    "start_idx": 423,
+    "end_idx": 480,
+    "start_time": 4.23,
+    "end_time": 4.79,
+    "duration": 0.5599999999999996,
+    "score": 0.66
+  },
+  {
+    "label": "climb",
+    "start_idx": 715,
+    "end_idx": 754,
+    "start_time": 7.15,
+    "end_time": 7.53,
+    "duration": 0.3799999999999999,
+    "score": 0.81
+  }
+]

@@ -24,4 +24,4 @@ dependencies = [
 dev = ["pytest>=7.0", "nbval", "xgboost", "tensorflow", "matplotlib", "joblib"]
 
 [project.scripts]
-maneuvers = "maneuvers.__main__:main"
+maneuvers = "maneuvers.cli:app"

@@ -1,4 +1,15 @@
 {
   "python-envs.defaultEnvManager": "ms-python.python:system",
-  "python-envs.pythonProjects": []
+  "python-envs.pythonProjects": [],
+  "mcp": {
+    "servers": {
+      "maneuvers": {
+        "command": "python",
+        "args": ["/workspaces/maneuvers-mcp-server/server.py"],
+        "env": {
+          "PYTHONPATH": "/workspaces/maneuvers/src"
+        }
+      }
+    }
+  }
 }

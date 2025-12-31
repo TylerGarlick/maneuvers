@@ -12,8 +12,8 @@ Available commands
 
   Example:
   ```bash
-  python -m maneuvers.cli detect-synthetic --duration 10 --fs 100 --threshold 0.4
-  python -m maneuvers.cli detect-synthetic --model model.joblib
+  maneuvers detect-synthetic --duration 10 --fs 100 --threshold 0.4
+  maneuvers detect-synthetic --model model.joblib
   ```
 
 - `eval-synthetic`
@@ -21,15 +21,35 @@ Available commands
 
   Example:
   ```bash
-  python -m maneuvers.cli eval-synthetic --duration 10 --fs 100 --threshold 0.4
+  maneuvers eval-synthetic --duration 10 --fs 100 --threshold 0.4
   ```
 
 - `train-synthetic`
-  - Trains a simple classifier on a synthetic sequence and saves the trained object.
+  - Trains a classifier on multiple synthetic sequences and optionally maneuvers_small dataset, with hyperparameter tuning.
+  - Options: `--duration`, `--fs`, `--out`, `--model-type` (rf, logistic, mlp, xgb), `--num-sequences` (default 10), `--use-maneuvers-small` (default True).
 
   Example:
   ```bash
-  python -m maneuvers.cli train-synthetic --out model.joblib --duration 10 --fs 100
+  maneuvers train-synthetic --out model.joblib --duration 10 --fs 100
+  maneuvers train-synthetic --out model.joblib --num-sequences 20 --use-maneuvers-small true
+  ```
+
+- `export-detect`
+  - Generates synthetic data, detects maneuvers, labels with model, computes scores, and exports to JSON/CSV.
+  - Options: `--duration`, `--fs`, `--threshold`, `--min-len`, `--out`, `--model`.
+
+  Example:
+  ```bash
+  maneuvers export-detect --out maneuvers_export.json --model model.joblib
+  ```
+
+- `plot-3d`
+  - Generates synthetic data, detects maneuvers, and saves a 3D plot of the flight path with maneuver markers.
+  - Options: `--duration`, `--fs`, `--threshold`, `--min-len`, `--out`, `--model`, `--interactive` (for optional HTML).
+
+  Example:
+  ```bash
+  maneuvers plot-3d --out flight_path_3d.png --model model.joblib
   ```
 
 Notes
