@@ -270,5 +270,130 @@ def train_synthetic(
         typer.echo(f"Saved model to {out} with CV scores: {model_obj.get('cv_scores', {})}")
 
 
+@app.command()
+def train(
+    data_dir: str = typer.Option(None, help="Directory containing external dataset files (CSV/TSV)"),
+    data_format: str = typer.Option("auto", help="Data format: auto, csv, tsv, maneuver-id, garmin-g1000"),
+    out: str = "model.joblib",
+    model_type: str = "rf",
+    fs: int = 100,
+):
+    """Train a classifier on external datasets.
+
+    This command loads flight data from external sources like Maneuver-ID or
+    custom CSV/TSV files and trains a maneuver classification model.
+
+    Examples:
+        maneuvers train --data-dir data/external/maneuver-id --out model_maneuver_id.joblib
+        maneuvers train --data-dir examples/data --data-format garmin-g1000 --out model_g1000.joblib
+    
+    Supported model_type: rf, logistic, mlp, xgb (requires xgboost).
+    """
+    from pathlib import Path
+    from .data.loader import from_csv, from_maneuver_id_tsv, from_garmin_g1000_csv
+    from .classify import build_training_data_from_sequence, train_classifier, save_model
+
+    if data_dir is None:
+        typer.echo("Error: --data-dir is required")
+        raise typer.Exit(1)
+
+    data_path = Path(data_dir)
+    if not data_path.exists():
+        typer.echo(f"Error: Data directory does not exist: {data_dir}")
+        raise typer.Exit(1)
+
+    # Find data files
+    sequences = []
+    
+    # Determine file extensions based on format
+    if data_format == "maneuver-id" or data_format == "tsv":
+        extensions = ["*.tsv", "*.TSV"]
+    elif data_format == "garmin-g1000":
+        extensions = ["*.csv", "*.CSV"]
+    elif data_format == "csv":
+        extensions = ["*.csv", "*.CSV"]
+    else:  # auto
+        extensions = ["*.csv", "*.CSV", "*.tsv", "*.TSV"]
+
+    files = []
+    for ext in extensions:
+        files.extend(data_path.glob(ext))
+    
+    if not files:
+        typer.echo(f"No data files found in {data_dir}")
+        typer.echo(f"Looked for extensions: {extensions}")
+        raise typer.Exit(1)
+
+    typer.echo(f"Found {len(files)} data file(s) in {data_dir}")
+
+    # Load sequences
+    for file_path in files:
+        try:
+            if data_format == "maneuver-id" or (data_format == "auto" and file_path.suffix.lower() == ".tsv"):
+                seq = from_maneuver_id_tsv(str(file_path))
+                typer.echo(f"Loaded {file_path.name} (Maneuver-ID TSV format)")
+            elif data_format == "garmin-g1000":
+                seq = from_garmin_g1000_csv(str(file_path))
+                typer.echo(f"Loaded {file_path.name} (Garmin G1000 format)")
+            else:
+                seq = from_csv(str(file_path))
+                typer.echo(f"Loaded {file_path.name} (generic CSV format)")
+            
+            # For unsupervised data, we'll need to create synthetic segments
+            # or use the detection algorithm to find segments
+            if seq.segments is None or len(seq.segments) == 0:
+                typer.echo(f"  Warning: {file_path.name} has no labeled segments, skipping for supervised training")
+                continue
+            
+            sequences.append(seq)
+        except Exception as e:
+            typer.echo(f"  Error loading {file_path.name}: {e}")
+            continue
+
+    if not sequences:
+        typer.echo("No valid sequences loaded with labeled segments")
+        typer.echo("External datasets typically require manual labeling or ground truth files")
+        raise typer.Exit(1)
+
+    # Build training data
+    X_list = []
+    y_list = []
+    for seq in sequences:
+        feats = compute_features_from_sequence(seq)
+        X_seq, y_seq = build_training_data_from_sequence(seq, feats)
+        X_list.append(X_seq)
+        y_list.extend(y_seq)
+
+    X = np.vstack(X_list) if X_list else np.array([])
+    y = y_list
+
+    if len(X) == 0:
+        typer.echo("No training data generated from sequences")
+        raise typer.Exit(1)
+
+    typer.echo(f"Training with {len(X)} samples from {len(sequences)} sequence(s)")
+
+    # Use grid search for tuning
+    param_grid = None
+    if model_type == "rf":
+        param_grid = {"clf__n_estimators": [50, 100], "clf__max_depth": [None, 10]}
+
+    cv = min(5, max(2, len(np.unique(y))))
+    model_obj = train_classifier(X, y, model_type=model_type, cv=cv, param_grid=param_grid)
+
+    # Add metadata
+    model_obj["training_params"] = {
+        "data_dir": str(data_dir),
+        "data_format": data_format,
+        "num_sequences": len(sequences),
+        "num_files": len(files),
+        "model_type": model_type,
+        "fs": fs,
+    }
+
+    save_model(model_obj, out)
+    typer.echo(f"Saved model to {out} with CV scores: {model_obj.get('cv_scores', {})}")
+
+
 if __name__ == "__main__":
     app()
