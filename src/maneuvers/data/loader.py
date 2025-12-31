@@ -735,9 +735,8 @@ def from_maneuver_id_tsv(
         orient = np.vstack([
             [float(r["roll"]), float(r["pitch"]), float(r["heading"])] for r in rows
         ])
-        # Convert to radians if requested
-        if convert_gyro_deg_to_rad or convert_gyro_deg_to_rad is None:
-            orient = orient * (np.pi / 180.0)
+        # Note: Orientation in Maneuver-ID is in degrees, keep as-is for now
+        # Angular rates (gyro) will be computed as derivatives and already in rad/s
 
     # Compute accelerations from velocity if available
     accel = np.zeros((len(t), 3))
@@ -859,8 +858,9 @@ def from_garmin_g1000_csv(
         ])
 
     # Apply unit conversions
-    detect_info = {"gyro_units": "deg/s" if convert_gyro_deg_to_rad else "rad/s",
-                   "accel_units": "g" if convert_accel_g_to_m_s2 else "m/s2"}
+    # Note: Assume Garmin G1000 CSV has gyro in deg/s and accel in m/s^2 by default
+    # User can override with parameters
+    detect_info = {"gyro_units": "deg/s", "accel_units": "m/s2"}
     
     accel, gyro = _apply_unit_conversions(
         accel,
