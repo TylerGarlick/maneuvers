@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# External datasets (downloaded via fetch_datasets.py)
+data/external/maneuver-id/
+data/external/dashlink/
+data/external/*.zip
+data/external/*.tar.gz
