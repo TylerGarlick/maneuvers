@@ -88,6 +88,7 @@ All docs live under [docs/index.md](docs/index.md). Key pages:
 - [docs/index.md](docs/index.md) — overview and navigation
 - [docs/installation.md](docs/installation.md) — installation and environment setup
 - [docs/quickstart.md](docs/quickstart.md) — quickstart commands
+- [docs/improvements.md](docs/improvements.md) — **NEW**: improved detection methods and enhanced features
 - [docs/data.md](docs/data.md) — data formats, external datasets, and simulator CSV loaders
 - [docs/maneuvers_catalog.md](docs/maneuvers_catalog.md) — maneuver catalog and labels
 - [docs/preprocessing.md](docs/preprocessing.md) — preprocessing and feature extraction
