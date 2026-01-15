@@ -174,8 +174,9 @@ def demonstrate_parameter_tuning():
     ]
     
     for name, config in configs:
-        method = config.pop("method")
-        segments = detect_segments(features, method=method, **config)
+        method = config["method"]
+        params = {k: v for k, v in config.items() if k != "method"}
+        segments = detect_segments(features, method=method, **params)
         eval_res = evaluate_detection(gt_segments, segments)
         print(f"{name:<25}: Prec={eval_res['precision']:.3f}, Rec={eval_res['recall']:.3f}, Det={len(segments)}")
     
@@ -189,8 +190,9 @@ def demonstrate_parameter_tuning():
     ]
     
     for name, config in configs:
-        method = config.pop("method")
-        segments = detect_segments(features, method=method, **config)
+        method = config["method"]
+        params = {k: v for k, v in config.items() if k != "method"}
+        segments = detect_segments(features, method=method, **params)
         eval_res = evaluate_detection(gt_segments, segments)
         print(f"{name:<25}: Prec={eval_res['precision']:.3f}, Rec={eval_res['recall']:.3f}, Det={len(segments)}")
     
@@ -204,8 +206,9 @@ def demonstrate_parameter_tuning():
     ]
     
     for name, config in configs:
-        method = config.pop("method")
-        segments = detect_segments(features, method=method, **config)
+        method = config["method"]
+        params = {k: v for k, v in config.items() if k != "method"}
+        segments = detect_segments(features, method=method, **params)
         eval_res = evaluate_detection(gt_segments, segments)
         print(f"{name:<25}: Prec={eval_res['precision']:.3f}, Rec={eval_res['recall']:.3f}, F1={eval_res['f1']:.3f}")
     

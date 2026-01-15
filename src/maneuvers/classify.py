@@ -16,6 +16,10 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import make_scorer, f1_score
 from maneuvers.models.cnn import _CNN1DClassifier, _CNN1DMultiBranchClassifier
 
+
+# Numerical stability constant
+EPSILON = 1e-10  # Small value for numerical stability in division and log operations
+
 # optional backends
 try:
     from xgboost import XGBClassifier
@@ -93,8 +97,8 @@ def segment_aggregated_features(
         
         # Spectral entropy (measure of frequency complexity)
         psd = fft_vals ** 2
-        psd_norm = psd / (np.sum(psd) + 1e-10)
-        spectral_entropy = -np.sum(psd_norm * np.log2(psd_norm + 1e-10))
+        psd_norm = psd / (np.sum(psd) + EPSILON)
+        spectral_entropy = -np.sum(psd_norm * np.log2(psd_norm + EPSILON))
     else:
         dominant_freq = 0
         fft_energy = 0
@@ -105,8 +109,8 @@ def segment_aggregated_features(
     if len(accel_signal) > 2:
         first_third = accel_signal[:len(accel_signal)//3]
         last_third = accel_signal[-len(accel_signal)//3:]
-        rise_ratio = (np.mean(first_third) + 1e-10) / (max_accel + 1e-10)
-        fall_ratio = (np.mean(last_third) + 1e-10) / (max_accel + 1e-10)
+        rise_ratio = (np.mean(first_third) + EPSILON) / (max_accel + EPSILON)
+        fall_ratio = (np.mean(last_third) + EPSILON) / (max_accel + EPSILON)
         peak_location = np.argmax(accel_signal) / len(accel_signal)  # normalized position
     else:
         rise_ratio = 0
@@ -117,8 +121,8 @@ def segment_aggregated_features(
     if len(accel_signal) > 2:
         gyro_signal = seg["gyro_mag"].values
         # Normalize signals
-        accel_norm = (accel_signal - accel_signal.mean()) / (accel_signal.std() + 1e-10)
-        gyro_norm = (gyro_signal - gyro_signal.mean()) / (gyro_signal.std() + 1e-10)
+        accel_norm = (accel_signal - accel_signal.mean()) / (accel_signal.std() + EPSILON)
+        gyro_norm = (gyro_signal - gyro_signal.mean()) / (gyro_signal.std() + EPSILON)
         cross_corr = np.correlate(accel_norm, gyro_norm, mode='valid')[0] / len(accel_signal)
     else:
         cross_corr = 0

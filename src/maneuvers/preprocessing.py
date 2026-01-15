@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 
 
+# Numerical stability constants
+MIN_DT = 1e-6  # Minimum time delta to avoid division by zero
+
+
 def accel_magnitude(accel: np.ndarray) -> np.ndarray:
     """Return L2 norm of accelerometer axes per sample."""
     return np.linalg.norm(accel, axis=1)
@@ -32,7 +36,7 @@ def compute_jerk(accel: np.ndarray, timestamps: np.ndarray) -> np.ndarray:
         return np.zeros(len(accel))
     
     dt = np.diff(timestamps)
-    dt = np.where(dt > 0, dt, 1e-6)  # avoid division by zero
+    dt = np.where(dt > 0, dt, MIN_DT)  # avoid division by zero
     
     # Compute derivative per axis
     jerk = np.zeros_like(accel)

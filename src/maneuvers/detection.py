@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 
 
+# Numerical stability constants
+MIN_SIGNAL_RANGE = 1e-9  # Minimum signal range for normalization
+
+
 def threshold_segment(
     signal: np.ndarray, thr: float, min_len: int = 5
 ) -> List[Tuple[int, int]]:
@@ -147,7 +151,7 @@ def multi_signal_fusion_detect(
     # Normalize each signal to [0, 1] range
     def normalize(x):
         x_min, x_max = x.min(), x.max()
-        if x_max - x_min < 1e-9:
+        if x_max - x_min < MIN_SIGNAL_RANGE:
             return np.zeros_like(x)
         return (x - x_min) / (x_max - x_min)
     

@@ -79,10 +79,12 @@ def test_variance_based_detection():
         min_len=5
     )
     
-    # Should detect some segments
-    assert len(segments) >= 0  # May find 0 or more depending on variance threshold
+    # Should detect some segments or none depending on variance threshold
+    # This is valid behavior - variance method may not detect all maneuvers
+    assert len(segments) >= 0
     for s, e in segments:
         assert s < e
+        assert e - s >= 5  # min_len constraint
 
 
 def test_enhanced_features_available():
