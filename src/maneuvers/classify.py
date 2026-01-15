@@ -43,7 +43,8 @@ def segment_aggregated_features(
 ) -> np.ndarray:
     s, e = segment
     seg = features_df.iloc[s:e]
-    # richer aggregations
+    
+    # Basic statistical features (original)
     mean_accel = seg["accel_mag"].mean()
     std_accel = seg["accel_mag"].std()
     max_accel = seg["accel_mag"].max()
@@ -52,19 +53,88 @@ def segment_aggregated_features(
     energy = (seg["accel_mag"] ** 2).sum()
     length = e - s
     
+    # Enhanced statistical features
+    median_accel = seg["accel_mag"].median()
+    q75_accel = seg["accel_mag"].quantile(0.75)
+    q25_accel = seg["accel_mag"].quantile(0.25)
+    
+    # Distribution shape features
+    from scipy import stats
+    accel_signal = seg["accel_mag"].values
+    skewness = stats.skew(accel_signal) if len(accel_signal) > 2 else 0
+    kurtosis = stats.kurtosis(accel_signal) if len(accel_signal) > 2 else 0
+    
+    # Gyroscope features
+    std_gyro = seg["gyro_mag"].std()
+    max_gyro = seg["gyro_mag"].max()
+    
+    # Jerk features (if available)
+    if "jerk_mag" in seg.columns:
+        mean_jerk = seg["jerk_mag"].mean()
+        max_jerk = seg["jerk_mag"].max()
+    else:
+        mean_jerk = 0
+        max_jerk = 0
+    
+    # Rotational energy (if available)
+    if "rot_energy" in seg.columns:
+        mean_rot_energy = seg["rot_energy"].mean()
+        max_rot_energy = seg["rot_energy"].max()
+    else:
+        mean_rot_energy = 0
+        max_rot_energy = 0
+    
     # FFT-based features
     from scipy.fft import fft
-    accel_signal = seg["accel_mag"].values
     if len(accel_signal) > 1:
         fft_vals = np.abs(fft(accel_signal))
         dominant_freq = np.argmax(fft_vals[1:]) + 1  # skip DC
         fft_energy = np.sum(fft_vals**2)
+        
+        # Spectral entropy (measure of frequency complexity)
+        psd = fft_vals ** 2
+        psd_norm = psd / (np.sum(psd) + 1e-10)
+        spectral_entropy = -np.sum(psd_norm * np.log2(psd_norm + 1e-10))
     else:
         dominant_freq = 0
         fft_energy = 0
+        spectral_entropy = 0
+    
+    # Temporal pattern features
+    # Rise time: how quickly maneuver starts
+    if len(accel_signal) > 2:
+        first_third = accel_signal[:len(accel_signal)//3]
+        last_third = accel_signal[-len(accel_signal)//3:]
+        rise_ratio = (np.mean(first_third) + 1e-10) / (max_accel + 1e-10)
+        fall_ratio = (np.mean(last_third) + 1e-10) / (max_accel + 1e-10)
+        peak_location = np.argmax(accel_signal) / len(accel_signal)  # normalized position
+    else:
+        rise_ratio = 0
+        fall_ratio = 0
+        peak_location = 0.5
+    
+    # Cross-correlation between accel and gyro
+    if len(accel_signal) > 2:
+        gyro_signal = seg["gyro_mag"].values
+        # Normalize signals
+        accel_norm = (accel_signal - accel_signal.mean()) / (accel_signal.std() + 1e-10)
+        gyro_norm = (gyro_signal - gyro_signal.mean()) / (gyro_signal.std() + 1e-10)
+        cross_corr = np.correlate(accel_norm, gyro_norm, mode='valid')[0] / len(accel_signal)
+    else:
+        cross_corr = 0
     
     return np.array(
-        [mean_accel, std_accel, max_accel, min_accel, mean_gyro, energy, length, dominant_freq, fft_energy],
+        [
+            # Original features (for backward compatibility)
+            mean_accel, std_accel, max_accel, min_accel, mean_gyro, energy, length, 
+            dominant_freq, fft_energy,
+            # Enhanced features
+            median_accel, q75_accel, q25_accel, skewness, kurtosis,
+            std_gyro, max_gyro, mean_jerk, max_jerk,
+            mean_rot_energy, max_rot_energy,
+            spectral_entropy, rise_ratio, fall_ratio, peak_location,
+            cross_corr
+        ],
         dtype=float,
     )
 
