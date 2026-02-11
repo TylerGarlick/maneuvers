@@ -28,6 +28,3 @@ def test_train_classifier_runs_cv_when_enough_samples():
     out = train_classifier(X, y, cv=3)
     assert "cv_scores" in out
     assert out["cv_scores"] != {}
-    assert (
-        "test_f1" in out["cv_scores"] or "test_f1" not in out["cv_scores"]
-    )  # scoring dict present

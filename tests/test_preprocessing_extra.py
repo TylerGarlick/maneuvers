@@ -4,6 +4,13 @@ from maneuvers.preprocessing import moving_average, windowed_examples_from_seque
 from maneuvers.data.loader import Sequence
 
 
+def test_moving_average_window_one():
+    """Test moving_average with window <= 1 returns input unchanged."""
+    x = np.array([1, 2, 3, 4, 5])
+    result = moving_average(x, window=1)
+    np.testing.assert_array_equal(result, x)
+
+
 def test_moving_average_short():
     x = np.array([1.0, 2.0])
     # window larger than len(x): return flat array of mean
