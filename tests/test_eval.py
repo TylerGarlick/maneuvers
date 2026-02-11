@@ -1,3 +1,4 @@
+import pytest
 from maneuvers.eval import segment_iou, evaluate_detection
 
 
@@ -14,9 +15,22 @@ def test_segment_iou_no_overlap():
     assert segment_iou(a, b) == 0.0
 
 
+def test_segment_iou_contained():
+    """Test segment_iou when one segment is fully contained in another."""
+    a = (0, 10)
+    b = (2, 8)
+    assert pytest.approx(segment_iou(a, b), rel=1e-6) == 6.0 / 10.0
+
+
+def test_segment_iou_adjacent():
+    """Test segment_iou with adjacent segments (touching but no overlap)."""
+    a = (0, 5)
+    b = (5, 10)
+    assert segment_iou(a, b) == 0.0
+
+
 def test_segment_iou_invalid_segments():
     """Test segment_iou with invalid segments (end <= start)."""
-    # Invalid segment with end <= start
     a = (10, 10)  # Zero length
     b = (0, 5)
     assert segment_iou(a, b) == 0.0
