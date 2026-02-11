@@ -108,6 +108,55 @@ from maneuvers.data.loader import from_simconnect_csv
 seq = from_simconnect_csv("examples/simulators/simconnect_example.csv", convert_gyro_deg_to_rad=None)
 ```
 
+## Data quality checks
+
+Location: `src/maneuvers/data/quality.py`
+
+Before training or evaluating on real data, run quality checks to filter out bad sorties (the Maneuver-ID challenge explicitly requires separating good from bad data).
+
+### Minimum requirements
+
+`check_minimum_requirements(seq)` validates:
+- Sampling rate >= 50 Hz
+- Duration >= 10 seconds
+- Accel and gyro arrays present with shape (N, 3)
+- Acceleration does not exceed 10g
+- Velocity does not exceed 300 m/s (Mach 1)
+
+### Trajectory continuity
+
+`check_trajectory_continuity(seq)` runs four sub-checks and returns a combined result:
+
+| Check | Function | What it detects | Key parameter |
+|-------|----------|----------------|---------------|
+| Timestamp gaps | `check_timestamp_gaps()` | Missing data / recording pauses | `gap_factor` (default 3.0x median dt) |
+| Position jumps | `check_position_jumps()` | Teleportation in position data | `max_speed_m_s` (default 350 m/s) |
+| Velocity discontinuities | `check_velocity_discontinuities()` | Sudden velocity changes | `max_accel_m_s2` (default 150 m/s^2) |
+| Orientation discontinuities | `check_orientation_discontinuities()` | Sudden heading/pitch/roll jumps | `max_rate_deg_s` (default 500 deg/s) |
+
+The orientation check handles angle wrapping correctly — a heading smoothly crossing 360/0 degrees is not flagged.
+
+```python
+from maneuvers.data.loader import from_maneuver_id_tsv
+from maneuvers.data.quality import check_minimum_requirements, check_trajectory_continuity
+
+seq = from_maneuver_id_tsv("flight_001.tsv")
+
+# Basic checks
+basic = check_minimum_requirements(seq)
+print(basic["valid"], basic["issues"])
+
+# Continuity checks
+cont = check_trajectory_continuity(seq)
+print(cont["valid"], cont["issues"])
+
+# Detailed results per check
+for name, detail in cont["details"].items():
+    print(f"  {name}: valid={detail['valid']}")
+```
+
+Each check returns a dict with `valid` (bool) and details about flagged locations (index + value). Checks that require optional data (pos, vel, orient) are skipped gracefully when that data is absent, returning `skipped: True`.
+
 ## Why synthetic data?
 
 It helps you:
