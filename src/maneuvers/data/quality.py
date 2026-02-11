@@ -7,7 +7,7 @@ Provides checks for the Maneuver-ID challenge data quality sorting task:
 """
 
 from __future__ import annotations
-from typing import List, Tuple
+from typing import List
 import numpy as np
 from maneuvers.data.loader import Sequence
 
@@ -224,9 +224,7 @@ def check_trajectory_continuity(seq: Sequence, **kwargs) -> dict:
             'issues': list of human-readable issue strings
             'details': dict of individual check results keyed by name
     """
-    ts_result = check_timestamp_gaps(
-        seq, gap_factor=kwargs.get("gap_factor", 3.0)
-    )
+    ts_result = check_timestamp_gaps(seq, gap_factor=kwargs.get("gap_factor", 3.0))
     pos_result = check_position_jumps(
         seq, max_speed_m_s=kwargs.get("max_speed_m_s", 350.0)
     )
@@ -239,13 +237,9 @@ def check_trajectory_continuity(seq: Sequence, **kwargs) -> dict:
 
     issues: List[str] = []
     if not ts_result["valid"]:
-        issues.append(
-            f"Timestamp gaps detected: {len(ts_result['gaps'])} gap(s)"
-        )
+        issues.append(f"Timestamp gaps detected: {len(ts_result['gaps'])} gap(s)")
     if not pos_result["valid"]:
-        issues.append(
-            f"Position jumps detected: {len(pos_result['jumps'])} jump(s)"
-        )
+        issues.append(f"Position jumps detected: {len(pos_result['jumps'])} jump(s)")
     if not vel_result["valid"]:
         issues.append(
             f"Velocity discontinuities: "
@@ -257,10 +251,7 @@ def check_trajectory_continuity(seq: Sequence, **kwargs) -> dict:
             f"{len(orient_result['discontinuities'])} discontinuity(ies)"
         )
 
-    valid = all(
-        r["valid"]
-        for r in [ts_result, pos_result, vel_result, orient_result]
-    )
+    valid = all(r["valid"] for r in [ts_result, pos_result, vel_result, orient_result])
 
     return {
         "valid": valid,

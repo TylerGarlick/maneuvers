@@ -1,10 +1,8 @@
 """Tests for data quality checks including trajectory continuity."""
 
 import numpy as np
-import pytest
 from maneuvers.data.loader import Sequence
 from maneuvers.data.quality import (
-    check_minimum_requirements,
     check_timestamp_gaps,
     check_position_jumps,
     check_velocity_discontinuities,
@@ -138,9 +136,7 @@ class TestPositionJumps:
         # Default threshold 350 m/s — should pass
         assert check_position_jumps(seq, max_speed_m_s=350.0)["valid"] is True
         # Lower threshold — should fail
-        assert (
-            check_position_jumps(seq, max_speed_m_s=100.0)["valid"] is False
-        )
+        assert check_position_jumps(seq, max_speed_m_s=100.0)["valid"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +164,6 @@ class TestVelocityDiscontinuities:
 
     def test_velocity_jump_detected(self):
         N = 500
-        t = np.linspace(0, 5, N, endpoint=False)
         vel = np.zeros((N, 3))
         vel[:, 0] = 100.0
         # Sudden 500 m/s velocity change at index 250
@@ -203,7 +198,6 @@ class TestOrientationDiscontinuities:
 
     def test_heading_jump_detected(self):
         N = 500
-        t = np.linspace(0, 5, N, endpoint=False)
         orient = np.zeros((N, 3))
         orient[:, 2] = 90.0  # constant heading
         # Sudden 170-degree heading jump at index 250
