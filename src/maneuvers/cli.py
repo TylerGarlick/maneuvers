@@ -20,14 +20,29 @@ def detect_synthetic(
     fs: int = 100,
     threshold: float = 0.5,
     min_len: int = 5,
+    method: str = "threshold",
+    post_min_gap: int = 0,
+    post_max_len: int = 0,
+    post_min_len: int = 0,
     out: Optional[str] = None,
     model: Optional[str] = None,
 ):
-    """Generate a synthetic sequence and run baseline detection. Optionally label segments using a saved model."""
+    """Generate a synthetic sequence and run detection. Optionally label segments using a saved model.
+
+    Supported methods: threshold, cusum, energy, orientation, fusion.
+    """
     seq = generate_synthetic_sequence(duration_s=duration, fs=fs)
     feats = compute_features_from_sequence(seq)
     preds = detect_segments(
-        feats, method="threshold", threshold=threshold, min_len=min_len
+        feats,
+        method=method,
+        seq=seq,
+        threshold=threshold,
+        min_len=min_len,
+        fs=fs,
+        post_min_gap=post_min_gap,
+        post_max_len=post_max_len,
+        post_min_len=post_min_len,
     )
 
     labels = None
@@ -52,11 +67,33 @@ def detect_synthetic(
 
 
 @app.command()
-def eval_synthetic(duration: float = 10.0, fs: int = 100, threshold: float = 0.5, min_len: int = 5):
-    """Run detection on synthetic data and print evaluation against ground truth."""
+def eval_synthetic(
+    duration: float = 10.0,
+    fs: int = 100,
+    threshold: float = 0.5,
+    min_len: int = 5,
+    method: str = "threshold",
+    post_min_gap: int = 0,
+    post_max_len: int = 0,
+    post_min_len: int = 0,
+):
+    """Run detection on synthetic data and print evaluation against ground truth.
+
+    Supported methods: threshold, cusum, energy, orientation, fusion.
+    """
     seq = generate_synthetic_sequence(duration_s=duration, fs=fs)
     feats = compute_features_from_sequence(seq)
-    preds = detect_segments(feats, method="threshold", threshold=threshold, min_len=min_len)
+    preds = detect_segments(
+        feats,
+        method=method,
+        seq=seq,
+        threshold=threshold,
+        min_len=min_len,
+        fs=fs,
+        post_min_gap=post_min_gap,
+        post_max_len=post_max_len,
+        post_min_len=post_min_len,
+    )
 
     gt = [(s, e) for s, e, _ in seq.segments]
     res = evaluate_detection(gt, preds)
@@ -68,10 +105,17 @@ def detect_real(
     data_path: str,
     threshold: float = 0.5,
     min_len: int = 5,
+    method: str = "threshold",
+    post_min_gap: int = 0,
+    post_max_len: int = 0,
+    post_min_len: int = 0,
     out: Optional[str] = None,
     model: Optional[str] = None,
 ):
-    """Load real T-6A sequence from CSV and run baseline detection. Optionally label segments using a saved model."""
+    """Load real T-6A sequence from CSV and run detection. Optionally label segments using a saved model.
+
+    Supported methods: threshold, cusum, energy, orientation, fusion.
+    """
     from .data.loader import load_t6a_sequence
     from .data.quality import check_minimum_requirements
 
@@ -83,7 +127,15 @@ def detect_real(
 
     feats = compute_features_from_sequence(seq)
     preds = detect_segments(
-        feats, method="threshold", threshold=threshold, min_len=min_len
+        feats,
+        method=method,
+        seq=seq,
+        threshold=threshold,
+        min_len=min_len,
+        fs=None,
+        post_min_gap=post_min_gap,
+        post_max_len=post_max_len,
+        post_min_len=post_min_len,
     )
 
     labels = None
