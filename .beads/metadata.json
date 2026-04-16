@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "maneuvers",
+  "project_id": "887ea42d-36c6-422f-bcfb-290d03aa9672"
+}

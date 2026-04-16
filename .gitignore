@@ -211,3 +211,8 @@ data/external/maneuver-id/
 data/external/dashlink/
 data/external/*.zip
 data/external/*.tar.gz
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
