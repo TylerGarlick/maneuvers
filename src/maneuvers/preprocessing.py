@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 
 
+# Numerical stability constants
+MIN_DT = 1e-6  # Minimum time delta to avoid division by zero
+
+
 def accel_magnitude(accel: np.ndarray) -> np.ndarray:
     """Return L2 norm of accelerometer axes per sample."""
     return np.linalg.norm(accel, axis=1)
@@ -22,6 +26,36 @@ def moving_average(x: np.ndarray, window: int = 5) -> np.ndarray:
     return np.convolve(x, kernel, mode="same")
 
 
+def compute_jerk(accel: np.ndarray, timestamps: np.ndarray) -> np.ndarray:
+    """Compute jerk (derivative of acceleration) magnitude.
+    
+    Jerk is the rate of change of acceleration and can indicate
+    sudden maneuver transitions.
+    """
+    if len(accel) < 2:
+        return np.zeros(len(accel))
+    
+    dt = np.diff(timestamps)
+    dt = np.where(dt > 0, dt, MIN_DT)  # avoid division by zero
+    
+    # Compute derivative per axis
+    jerk = np.zeros_like(accel)
+    jerk[1:] = np.diff(accel, axis=0) / dt[:, np.newaxis]
+    jerk[0] = jerk[1]  # forward fill first sample
+    
+    # Return magnitude
+    return np.linalg.norm(jerk, axis=1)
+
+
+def compute_rotational_energy(gyro: np.ndarray) -> np.ndarray:
+    """Compute rotational energy from gyroscope data.
+    
+    Higher rotational energy indicates turning maneuvers.
+    """
+    # Rotational kinetic energy is proportional to omega^2
+    return np.sum(gyro ** 2, axis=1)
+
+
 def compute_features_from_sequence(seq) -> pd.DataFrame:
     """Compute a small set of features used by the baseline detector.
 
@@ -29,12 +63,16 @@ def compute_features_from_sequence(seq) -> pd.DataFrame:
     - accel_mag: magnitude of acceleration
     - accel_mag_smooth: moving-average smoothed magnitude
     - gyro_mag: magnitude of angular rate
+    - jerk_mag: magnitude of jerk (acceleration derivative)
+    - rot_energy: rotational energy from gyroscope
     - pos_mag: magnitude of position (if available)
     - vel_mag: magnitude of velocity (if available)
     - orient_mag: magnitude of orientation (if available)
     """
     accel_mag = accel_magnitude(seq.accel)
     gyro_mag = np.linalg.norm(seq.gyro, axis=1)
+    jerk_mag = compute_jerk(seq.accel, seq.timestamps)
+    rot_energy = compute_rotational_energy(seq.gyro)
 
     # Smooth - pad to keep same length
     smooth = moving_average(accel_mag, window=7)
@@ -46,6 +84,8 @@ def compute_features_from_sequence(seq) -> pd.DataFrame:
         "accel_mag": accel_mag,
         "accel_smooth": accel_smooth,
         "gyro_mag": gyro_mag,
+        "jerk_mag": jerk_mag,
+        "rot_energy": rot_energy,
     }
 
     if seq.pos is not None:
