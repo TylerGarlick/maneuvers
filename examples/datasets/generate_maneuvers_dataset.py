@@ -9,7 +9,11 @@ from __future__ import annotations
 from pathlib import Path
 import json
 
-from maneuvers.data.loader import generate_maneuvers_dataset, generate_synthetic_sequence, from_csv
+from maneuvers.data.loader import (
+    generate_maneuvers_dataset,
+    generate_synthetic_sequence,
+    from_csv,
+)
 
 OUTDIR = Path("examples/datasets/maneuvers_small")
 
@@ -19,18 +23,22 @@ def generate_all(outdir: Path = OUTDIR, seed: int | None = 0):
     print(f"Wrote {len(manifest)} files to {outdir}")
 
 
-def generate_combined_training_data(num_synthetic: int = 10, outdir: Path = OUTDIR, seed: int | None = 0):
+def generate_combined_training_data(
+    num_synthetic: int = 10, outdir: Path = OUTDIR, seed: int | None = 0
+):
     """Generate combined training data: synthetic sequences + maneuvers_small dataset.
-    
+
     Returns list of Sequence objects with segments.
     """
     sequences = []
-    
+
     # Generate synthetic sequences
     for i in range(num_synthetic):
-        seq = generate_synthetic_sequence(duration_s=10.0, fs=100, seed=seed + i if seed else None)
+        seq = generate_synthetic_sequence(
+            duration_s=10.0, fs=100, seed=seed + i if seed else None
+        )
         sequences.append(seq)
-    
+
     # Load maneuvers_small dataset
     manifest_path = outdir / "manifest.json"
     if manifest_path.exists():
@@ -40,7 +48,7 @@ def generate_combined_training_data(num_synthetic: int = 10, outdir: Path = OUTD
             seq = from_csv(item["file"])
             seq.segments = item["segments"]
             sequences.append(seq)
-    
+
     return sequences
 
 

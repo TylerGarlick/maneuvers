@@ -52,11 +52,15 @@ def detect_synthetic(
 
 
 @app.command()
-def eval_synthetic(duration: float = 10.0, fs: int = 100, threshold: float = 0.5, min_len: int = 5):
+def eval_synthetic(
+    duration: float = 10.0, fs: int = 100, threshold: float = 0.5, min_len: int = 5
+):
     """Run detection on synthetic data and print evaluation against ground truth."""
     seq = generate_synthetic_sequence(duration_s=duration, fs=fs)
     feats = compute_features_from_sequence(seq)
-    preds = detect_segments(feats, method="threshold", threshold=threshold, min_len=min_len)
+    preds = detect_segments(
+        feats, method="threshold", threshold=threshold, min_len=min_len
+    )
 
     gt = [(s, e) for s, e, _ in seq.segments]
     res = evaluate_detection(gt, preds)
@@ -128,12 +132,14 @@ def plot_3d(
     if model:
         try:
             from .classify import load_model, predict_segment_labels
+
             mobj = load_model(model)
             labels = predict_segment_labels(mobj, feats, preds)
         except Exception as e:
             typer.echo(f"Failed to load/label with model {model}: {e}")
 
     from .visualize import plot_3d_segments
+
     plot_3d_segments(seq, preds, labels, out, interactive)
     typer.echo(f"Saved 3D plot to {out}")
 
@@ -168,6 +174,7 @@ def export_detect(
             typer.echo(f"Failed to load/label/score with model {model}: {e}")
 
     from .export import export_segments
+
     export_segments(seq, preds, labels, scores, out)
     typer.echo(f"Exported {len(preds)} segments to {out}")
 
@@ -204,6 +211,7 @@ def train_synthetic(
             with open(manifest_path, "r") as fh:
                 manifest = json.load(fh)
             from .data.loader import from_csv
+
             for item in manifest:
                 seq = from_csv(item["file"])
                 seq.segments = item["segments"]
@@ -255,7 +263,9 @@ def train_synthetic(
             param_grid = {"clf__n_estimators": [50, 100], "clf__max_depth": [None, 10]}
 
         cv = min(5, max(2, len(np.unique(y))))
-        model_obj = train_classifier(X, y, model_type=model_type, cv=cv, param_grid=param_grid)
+        model_obj = train_classifier(
+            X, y, model_type=model_type, cv=cv, param_grid=param_grid
+        )
 
         # Add metadata
         model_obj["training_params"] = {
@@ -267,13 +277,19 @@ def train_synthetic(
         }
 
         save_model(model_obj, out)
-        typer.echo(f"Saved model to {out} with CV scores: {model_obj.get('cv_scores', {})}")
+        typer.echo(
+            f"Saved model to {out} with CV scores: {model_obj.get('cv_scores', {})}"
+        )
 
 
 @app.command()
 def train(
-    data_dir: str = typer.Option(None, help="Directory containing external dataset files (CSV/TSV)"),
-    data_format: str = typer.Option("auto", help="Data format: auto, csv, tsv, maneuver-id, garmin-g1000"),
+    data_dir: str = typer.Option(
+        None, help="Directory containing external dataset files (CSV/TSV)"
+    ),
+    data_format: str = typer.Option(
+        "auto", help="Data format: auto, csv, tsv, maneuver-id, garmin-g1000"
+    ),
     out: str = "model.joblib",
     model_type: str = "rf",
     fs: int = 100,
@@ -286,12 +302,16 @@ def train(
     Examples:
         maneuvers train --data-dir data/external/maneuver-id --out model_maneuver_id.joblib
         maneuvers train --data-dir examples/data --data-format garmin-g1000 --out model_g1000.joblib
-    
+
     Supported model_type: rf, logistic, mlp, xgb (requires xgboost).
     """
     from pathlib import Path
     from .data.loader import from_csv, from_maneuver_id_tsv, from_garmin_g1000_csv
-    from .classify import build_training_data_from_sequence, train_classifier, save_model
+    from .classify import (
+        build_training_data_from_sequence,
+        train_classifier,
+        save_model,
+    )
 
     if data_dir is None:
         typer.echo("Error: --data-dir is required")
@@ -304,7 +324,7 @@ def train(
 
     # Find data files
     sequences = []
-    
+
     # Determine file extensions based on format
     if data_format == "maneuver-id" or data_format == "tsv":
         extensions = ["*.tsv", "*.TSV"]
@@ -318,7 +338,7 @@ def train(
     files = []
     for ext in extensions:
         files.extend(data_path.glob(ext))
-    
+
     if not files:
         typer.echo(f"No data files found in {data_dir}")
         typer.echo(f"Looked for extensions: {extensions}")
@@ -329,7 +349,9 @@ def train(
     # Load sequences
     for file_path in files:
         try:
-            if data_format == "maneuver-id" or (data_format == "auto" and file_path.suffix.lower() == ".tsv"):
+            if data_format == "maneuver-id" or (
+                data_format == "auto" and file_path.suffix.lower() == ".tsv"
+            ):
                 seq = from_maneuver_id_tsv(str(file_path))
                 typer.echo(f"Loaded {file_path.name} (Maneuver-ID TSV format)")
             elif data_format == "garmin-g1000":
@@ -338,13 +360,15 @@ def train(
             else:
                 seq = from_csv(str(file_path))
                 typer.echo(f"Loaded {file_path.name} (generic CSV format)")
-            
+
             # For unsupervised data, we'll need to create synthetic segments
             # or use the detection algorithm to find segments
             if seq.segments is None or len(seq.segments) == 0:
-                typer.echo(f"  Warning: {file_path.name} has no labeled segments, skipping for supervised training")
+                typer.echo(
+                    f"  Warning: {file_path.name} has no labeled segments, skipping for supervised training"
+                )
                 continue
-            
+
             sequences.append(seq)
         except Exception as e:
             typer.echo(f"  Error loading {file_path.name}: {e}")
@@ -352,7 +376,9 @@ def train(
 
     if not sequences:
         typer.echo("No valid sequences loaded with labeled segments")
-        typer.echo("External datasets typically require manual labeling or ground truth files")
+        typer.echo(
+            "External datasets typically require manual labeling or ground truth files"
+        )
         raise typer.Exit(1)
 
     # Build training data
@@ -379,7 +405,9 @@ def train(
         param_grid = {"clf__n_estimators": [50, 100], "clf__max_depth": [None, 10]}
 
     cv = min(5, max(2, len(np.unique(y))))
-    model_obj = train_classifier(X, y, model_type=model_type, cv=cv, param_grid=param_grid)
+    model_obj = train_classifier(
+        X, y, model_type=model_type, cv=cv, param_grid=param_grid
+    )
 
     # Add metadata
     model_obj["training_params"] = {

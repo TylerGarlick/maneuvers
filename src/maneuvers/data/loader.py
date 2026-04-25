@@ -641,21 +641,24 @@ def load_t6a_sequence(
 
     # Extract data
     t = np.array([float(r["time"]) for r in rows], dtype=float)
-    pos = np.vstack([
-        [float(r["pos_x"]), float(r["pos_y"]), float(r["pos_z"])] for r in rows
-    ])
-    vel = np.vstack([
-        [float(r["vel_x"]), float(r["vel_y"]), float(r["vel_z"])] for r in rows
-    ])
-    orient = np.vstack([
-        [float(r["orient_roll"]), float(r["orient_pitch"]), float(r["orient_yaw"])] for r in rows
-    ])
-    accel = np.vstack([
-        [float(r["accel_x"]), float(r["accel_y"]), float(r["accel_z"])] for r in rows
-    ])
-    gyro = np.vstack([
-        [float(r["gyro_p"]), float(r["gyro_q"]), float(r["gyro_r"])] for r in rows
-    ])
+    pos = np.vstack(
+        [[float(r["pos_x"]), float(r["pos_y"]), float(r["pos_z"])] for r in rows]
+    )
+    vel = np.vstack(
+        [[float(r["vel_x"]), float(r["vel_y"]), float(r["vel_z"])] for r in rows]
+    )
+    orient = np.vstack(
+        [
+            [float(r["orient_roll"]), float(r["orient_pitch"]), float(r["orient_yaw"])]
+            for r in rows
+        ]
+    )
+    accel = np.vstack(
+        [[float(r["accel_x"]), float(r["accel_y"]), float(r["accel_z"])] for r in rows]
+    )
+    gyro = np.vstack(
+        [[float(r["gyro_p"]), float(r["gyro_q"]), float(r["gyro_r"])] for r in rows]
+    )
 
     # Apply unit conversions if needed
     detect_info = {"gyro_units": None, "accel_units": None}
@@ -718,23 +721,23 @@ def from_maneuver_id_tsv(
     # Extract position (meters)
     pos = None
     if all(k in rows[0] for k in ("xEast", "yNorth", "zUp")):
-        pos = np.vstack([
-            [float(r["xEast"]), float(r["yNorth"]), float(r["zUp"])] for r in rows
-        ])
+        pos = np.vstack(
+            [[float(r["xEast"]), float(r["yNorth"]), float(r["zUp"])] for r in rows]
+        )
 
     # Extract velocity (m/s)
     vel = None
     if all(k in rows[0] for k in ("vxEast", "vyNorth", "vzUp")):
-        vel = np.vstack([
-            [float(r["vxEast"]), float(r["vyNorth"]), float(r["vzUp"])] for r in rows
-        ])
+        vel = np.vstack(
+            [[float(r["vxEast"]), float(r["vyNorth"]), float(r["vzUp"])] for r in rows]
+        )
 
     # Extract orientation (degrees)
     orient = None
     if all(k in rows[0] for k in ("roll", "pitch", "heading")):
-        orient = np.vstack([
-            [float(r["roll"]), float(r["pitch"]), float(r["heading"])] for r in rows
-        ])
+        orient = np.vstack(
+            [[float(r["roll"]), float(r["pitch"]), float(r["heading"])] for r in rows]
+        )
         # Note: Orientation in Maneuver-ID is in degrees, keep as-is for now
         # Angular rates (gyro) will be computed as derivatives and already in rad/s
 
@@ -758,7 +761,9 @@ def from_maneuver_id_tsv(
         dt = np.diff(t)
         dt = np.where(dt > 0, dt, 1e-6)
         # Central difference for angular rates
-        gyro[1:-1] = (orient[2:] - orient[:-2]) / (dt[1:, np.newaxis] + dt[:-1, np.newaxis])
+        gyro[1:-1] = (orient[2:] - orient[:-2]) / (
+            dt[1:, np.newaxis] + dt[:-1, np.newaxis]
+        )
         # Forward/backward difference at boundaries
         gyro[0] = (orient[1] - orient[0]) / dt[0]
         gyro[-1] = (orient[-1] - orient[-2]) / dt[-1]
@@ -819,49 +824,62 @@ def from_garmin_g1000_csv(
     t = np.array([float(r["time"]) for r in rows], dtype=float)
 
     # Extract accelerations (m/s^2 or g, depending on source)
-    accel = np.vstack([
-        [float(r["accel_x"]), float(r["accel_y"]), float(r["accel_z"])] for r in rows
-    ])
+    accel = np.vstack(
+        [[float(r["accel_x"]), float(r["accel_y"]), float(r["accel_z"])] for r in rows]
+    )
 
     # Extract gyro (deg/s or rad/s, depending on source)
-    gyro = np.vstack([
-        [float(r["gyro_p"]), float(r["gyro_q"]), float(r["gyro_r"])] for r in rows
-    ])
+    gyro = np.vstack(
+        [[float(r["gyro_p"]), float(r["gyro_q"]), float(r["gyro_r"])] for r in rows]
+    )
 
     # Extract orientation (degrees)
     orient = None
     if all(k in rows[0] for k in ("roll_deg", "pitch_deg", "heading_deg")):
-        orient = np.vstack([
-            [float(r["roll_deg"]), float(r["pitch_deg"]), float(r["heading_deg"])] for r in rows
-        ])
+        orient = np.vstack(
+            [
+                [float(r["roll_deg"]), float(r["pitch_deg"]), float(r["heading_deg"])]
+                for r in rows
+            ]
+        )
 
     # Position: lat/lon/alt (note: simplified, not full conversion to meters)
     pos = None
     if all(k in rows[0] for k in ("latitude", "longitude", "altitude_ft")):
         # Store as lat, lon, alt_meters
-        pos = np.vstack([
-            [float(r["latitude"]), float(r["longitude"]), float(r["altitude_ft"]) * 0.3048]
-            for r in rows
-        ])
+        pos = np.vstack(
+            [
+                [
+                    float(r["latitude"]),
+                    float(r["longitude"]),
+                    float(r["altitude_ft"]) * 0.3048,
+                ]
+                for r in rows
+            ]
+        )
 
     # Velocity: airspeed, groundspeed, vertical_speed (convert to m/s)
     vel = None
-    if all(k in rows[0] for k in ("airspeed_kts", "groundspeed_kts", "vertical_speed_fpm")):
+    if all(
+        k in rows[0] for k in ("airspeed_kts", "groundspeed_kts", "vertical_speed_fpm")
+    ):
         # Store as airspeed_m/s, groundspeed_m/s, vs_m/s
-        vel = np.vstack([
+        vel = np.vstack(
             [
-                float(r["airspeed_kts"]) * 0.514444,  # knots to m/s
-                float(r["groundspeed_kts"]) * 0.514444,
-                float(r["vertical_speed_fpm"]) * 0.00508,  # fpm to m/s
+                [
+                    float(r["airspeed_kts"]) * 0.514444,  # knots to m/s
+                    float(r["groundspeed_kts"]) * 0.514444,
+                    float(r["vertical_speed_fpm"]) * 0.00508,  # fpm to m/s
+                ]
+                for r in rows
             ]
-            for r in rows
-        ])
+        )
 
     # Apply unit conversions
     # Note: Assume Garmin G1000 CSV has gyro in deg/s and accel in m/s^2 by default
     # User can override with parameters
     detect_info = {"gyro_units": "deg/s", "accel_units": "m/s2"}
-    
+
     accel, gyro = _apply_unit_conversions(
         accel,
         gyro,

@@ -39,7 +39,7 @@ def fetch_maneuver_id(out_dir: Path, verbose: bool = True) -> None:
     # Note: The actual Maneuver-ID dataset requires signing a Data Sharing Agreement
     # We'll create a placeholder that documents how to get the data
     readme_path = dataset_dir / "README.md"
-    
+
     readme_content = """# Maneuver-ID Dataset
 
 This dataset is from the MIT and U.S. Air Force Maneuver-ID Challenge project.
@@ -98,13 +98,15 @@ If you use this dataset, please cite:
 }
 ```
 """
-    
+
     with open(readme_path, "w") as f:
         f.write(readme_content)
-    
+
     if verbose:
         print(f"Created README at {readme_path}")
-        print("Note: Full Maneuver-ID dataset requires registration and manual download from:")
+        print(
+            "Note: Full Maneuver-ID dataset requires registration and manual download from:"
+        )
         print("      https://maneuver-id.mit.edu/data/")
         print("      You must sign a Data Sharing Agreement to access the dataset.")
         print(f"      Extract flight TSV files to: {dataset_dir}/")
@@ -129,7 +131,7 @@ def fetch_dashlink(out_dir: Path, verbose: bool = True) -> None:
     # Note: DASHlink data requires authentication/registration
     # We'll create a placeholder with download instructions
     readme_path = dataset_dir / "README.md"
-    
+
     readme_content = """# NASA DASHlink Dataset
 
 This dataset is from NASA's DASHlink project.
@@ -180,13 +182,15 @@ seq = from_csv("data/external/dashlink/flight_001.csv")
 If you use this dataset, please cite the appropriate NASA/DASHlink publications
 and acknowledge the data source.
 """
-    
+
     with open(readme_path, "w") as f:
         f.write(readme_content)
-    
+
     if verbose:
         print(f"Created README at {readme_path}")
-        print("Note: Full DASHlink dataset requires registration and manual download from:")
+        print(
+            "Note: Full DASHlink dataset requires registration and manual download from:"
+        )
         print("      https://c3.ndc.nasa.gov/dashlink/projects/85/")
         print(f"      Extract data files to: {dataset_dir}/")
 
@@ -200,10 +204,10 @@ def fetch_all(out_dir: Path, verbose: bool = True) -> None:
     """
     if verbose:
         print("Fetching all datasets...")
-    
+
     fetch_maneuver_id(out_dir, verbose)
     fetch_dashlink(out_dir, verbose)
-    
+
     if verbose:
         print("\nDataset fetch complete!")
         print(f"Datasets are located in: {out_dir}")
@@ -227,18 +231,19 @@ def main():
         help="Output directory for datasets (default: data/external)",
     )
     parser.add_argument(
-        "-q", "--quiet",
+        "-q",
+        "--quiet",
         action="store_true",
         help="Suppress progress messages",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Ensure output directory exists
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    
+
     verbose = not args.quiet
-    
+
     try:
         if args.dataset == "all":
             fetch_all(args.out_dir, verbose)
@@ -249,7 +254,7 @@ def main():
         else:
             print(f"Unknown dataset: {args.dataset}", file=sys.stderr)
             sys.exit(1)
-            
+
     except Exception as e:
         print(f"Error fetching dataset: {e}", file=sys.stderr)
         sys.exit(1)

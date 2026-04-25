@@ -18,7 +18,7 @@ def export_segments(
     out_path: str = "maneuvers_export.json",
 ) -> None:
     """Export detected segments with labels, scores, and timing info to JSON or CSV.
-    
+
     Args:
         seq: The Sequence object with timestamps.
         segments: List of (start_idx, end_idx) tuples.
@@ -30,22 +30,26 @@ def export_segments(
         labels = ["unknown"] * len(segments)
     if scores is None:
         scores = [1.0] * len(segments)
-    
+
     data = []
     for i, (s, e) in enumerate(segments):
         start_time = seq.timestamps[s] if s < len(seq.timestamps) else 0.0
-        end_time = seq.timestamps[e-1] if e-1 < len(seq.timestamps) else seq.timestamps[-1]
+        end_time = (
+            seq.timestamps[e - 1] if e - 1 < len(seq.timestamps) else seq.timestamps[-1]
+        )
         duration = end_time - start_time
-        data.append({
-            "label": labels[i],
-            "start_idx": s,
-            "end_idx": e,
-            "start_time": start_time,
-            "end_time": end_time,
-            "duration": duration,
-            "score": scores[i],
-        })
-    
+        data.append(
+            {
+                "label": labels[i],
+                "start_idx": s,
+                "end_idx": e,
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration": duration,
+                "score": scores[i],
+            }
+        )
+
     path = Path(out_path)
     if path.suffix.lower() == ".json":
         with open(path, "w") as fh:
@@ -62,12 +66,12 @@ def export_segments(
 
 def score_segment(seq: Sequence, segment: Tuple[int, int], model=None) -> float:
     """Compute a quality score for a segment using model probability or fallback.
-    
+
     Args:
         seq: The Sequence object.
         segment: (start_idx, end_idx) tuple.
         model: Optional trained model dict for probability scoring.
-    
+
     Returns:
         Score between 0 and 1.
     """
@@ -80,19 +84,19 @@ def score_segment(seq: Sequence, segment: Tuple[int, int], model=None) -> float:
         else:
             score = 0.5
         return score
-    
+
     # Use model probability
     from .preprocessing import compute_features_from_sequence
     from .classify import segment_aggregated_features
-    
+
     feats = compute_features_from_sequence(seq)
     feat_vec = segment_aggregated_features(feats, segment).reshape(1, -1)
-    
+
     try:
         probs = model["model"].predict_proba(feat_vec)
         # Take max probability as score
         score = np.max(probs)
     except:
         score = 0.5  # fallback
-    
+
     return float(score)

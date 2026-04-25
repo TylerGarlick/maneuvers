@@ -51,9 +51,10 @@ def segment_aggregated_features(
     mean_gyro = seg["gyro_mag"].mean()
     energy = (seg["accel_mag"] ** 2).sum()
     length = e - s
-    
+
     # FFT-based features
     from scipy.fft import fft
+
     accel_signal = seg["accel_mag"].values
     if len(accel_signal) > 1:
         fft_vals = np.abs(fft(accel_signal))
@@ -62,9 +63,19 @@ def segment_aggregated_features(
     else:
         dominant_freq = 0
         fft_energy = 0
-    
+
     return np.array(
-        [mean_accel, std_accel, max_accel, min_accel, mean_gyro, energy, length, dominant_freq, fft_energy],
+        [
+            mean_accel,
+            std_accel,
+            max_accel,
+            min_accel,
+            mean_gyro,
+            energy,
+            length,
+            dominant_freq,
+            fft_energy,
+        ],
         dtype=float,
     )
 
@@ -218,14 +229,19 @@ class _KerasDenseClassifier:
 
 
 def train_classifier(
-    X: np.ndarray, y: List[str], model_type: str = "rf", cv: int = 5, param_grid: dict | None = None, **kwargs
+    X: np.ndarray,
+    y: List[str],
+    model_type: str = "rf",
+    cv: int = 5,
+    param_grid: dict | None = None,
+    **kwargs,
 ) -> Dict:
     """Train a classifier with optional hyperparameter tuning and return a dict with model, encoder, and CV scores.
 
     This function is careful about very small sample regimes. If there are fewer
     than 2 classes or one of the classes has only a single sample, we skip
     cross-validation and train on the full set to avoid StratifiedKFold errors.
-    
+
     If param_grid is provided, uses GridSearchCV for hyperparameter tuning.
     """
     import warnings
@@ -265,7 +281,10 @@ def train_classifier(
                 )
                 gs.fit(X, y_enc)
                 pipe = gs.best_estimator_
-                cv_scores = {"best_params": gs.best_params_, "best_score": gs.best_score_}
+                cv_scores = {
+                    "best_params": gs.best_params_,
+                    "best_score": gs.best_score_,
+                }
             else:
                 skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
                 cv_scores = cross_validate(

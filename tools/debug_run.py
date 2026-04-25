@@ -3,6 +3,7 @@
 
 Run this script, then use the "Python: Attach to debugpy" configuration in VS Code.
 """
+
 import runpy
 import socket
 import time
@@ -16,6 +17,7 @@ except Exception:
 
 PORT = 5678
 
+
 def _port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
@@ -23,6 +25,7 @@ def _port_in_use(port: int) -> bool:
             return False
         except OSError:
             return True
+
 
 if _port_in_use(PORT):
     print(f"Port {PORT} already in use. Is another debugpy running?")

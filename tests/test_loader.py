@@ -15,7 +15,9 @@ def test_generate_synthetic_sequence_shapes():
 def test_generate_synthetic_sequence_clipped_maneuvers():
     """Test that maneuvers starting after sequence end are skipped."""
     # Create a very short sequence where maneuvers would be clipped to zero length
-    seq = generate_synthetic_sequence(duration_s=0.5, fs=100, seed=1)  # Very short sequence
+    seq = generate_synthetic_sequence(
+        duration_s=0.5, fs=100, seed=1
+    )  # Very short sequence
     # The maneuvers are hardcoded to start at specific times, so some may be skipped
     assert seq.timestamps.shape[0] == 50
     # Just check that it doesn't crash
@@ -23,7 +25,7 @@ def test_generate_synthetic_sequence_clipped_maneuvers():
 
 def test_from_csv_empty_file():
     """Test from_csv with empty CSV file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
         f.write("t,ax,ay,az,gx,gy,gz\n")  # Header only, no data rows
         temp_path = f.name
 
@@ -34,4 +36,5 @@ def test_from_csv_empty_file():
         assert "no rows" in str(e).lower()
     finally:
         import os
+
         os.unlink(temp_path)
